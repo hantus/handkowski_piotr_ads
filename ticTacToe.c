@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
+#include <string.h>
 
 #define SIZE 9
 
@@ -55,8 +56,8 @@ int checkFinish(struct board);
 void displayOptions();
 void startApp();
 char playSingleTwoPlayersMatch(char *, char *);
-char playSingleTwoPlayersMatchTTB(char *, char *);
-void playTwoPlayersGame();
+char playSingleTwoPlayersMatchRRS(char *, char *);
+void playTwoPlayersGame(char *);
 
 int main(int argc, char const *argv[]) {
 
@@ -102,11 +103,11 @@ void startApp(){
 
     switch (option) {
       case 1:
-      playTwoPlayersGame();
+      playTwoPlayersGame("Basic"); // classic TIC-TAC-TOE
       break;
 
       case 2:
-      playSingleTwoPlayersMatchTTB("John", "Mark");
+      playTwoPlayersGame("RRS"); // Russian Roulette style
       break;
 
       case 3:
@@ -128,7 +129,7 @@ void startApp(){
 }
 
 
-void playTwoPlayersGame(){
+void playTwoPlayersGame(char* type){
   char playerX[10];
   char playerO[10];
   printf("Please enter player's one name: ");
@@ -139,8 +140,14 @@ void playTwoPlayersGame(){
   int playerOwins = 0;
 
   char playAgain = 'n';
+  char winner;
   do {
-    char winner = playSingleTwoPlayersMatch(playerX, playerO);
+    if(strcmp(type,"Basic") == 0){
+      winner = playSingleTwoPlayersMatch(playerX, playerO);
+    }else{
+      winner = playSingleTwoPlayersMatchRRS(playerX, playerO);
+    }
+
     if(winner == 'X'){
       playerXwins++;
     }else if(winner == 'O'){
@@ -214,7 +221,7 @@ char playSingleTwoPlayersMatch(char *playerXname, char *playerOname){
   return 'd';
 }
 
-char playSingleTwoPlayersMatchTTB(char *playerXname, char *playerOname){
+char playSingleTwoPlayersMatchRRS(char *playerXname, char *playerOname){
   struct board myBoard;
   initBoard(&myBoard);
   int numberOfBombs;
@@ -232,11 +239,9 @@ char playSingleTwoPlayersMatchTTB(char *playerXname, char *playerOname){
   while(i != numberOfBombs){
     int bomb;
     bomb = ((rand()%9)+1);
-    printf("%d\n", bomb );
     // the first bomb position is always accepted
     if(i == 0){
       bombs[i] = bomb;
-      printf("Added a bomb\n" );
       i++;
     }
     // in case where more than one bombs is selected every other position is
@@ -254,17 +259,8 @@ char playSingleTwoPlayersMatchTTB(char *playerXname, char *playerOname){
         i++;
       }
     }
-
-  }
-  int idx;
-  for(idx = 0; idx < numberOfBombs; idx++) {
-    printf("bomb is - %d\n", bombs[idx]);
   }
 
-
-
-
-  //int i = 0;
   int j = 0;
   i = 0; //
   while(checkFinish(myBoard) == -1) {
