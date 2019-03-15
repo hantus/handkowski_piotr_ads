@@ -30,6 +30,9 @@ struct undoRedo{
   struct stack undoeMoves;
 };
 
+//gameHistory
+
+
 // stack
 void init_stack(struct stack*);
 void push(struct stack*, struct move);
@@ -51,11 +54,13 @@ char checkWin(struct board);
 int checkFinish(struct board);
 void displayOptions();
 void startApp();
-char playSingleTwoPlayersMatch();
+char playSingleTwoPlayersMatch(char *, char *);
+char playSingleTwoPlayersMatchTTB(char *, char *);
 void playTwoPlayersGame();
 
 int main(int argc, char const *argv[]) {
-  playTwoPlayersGame();
+
+  startApp();
 
 
 
@@ -91,20 +96,28 @@ void startApp(){
 
   int option;
 
-  while(option != 3){
+  while(option != 5){
     displayOptions();
     scanf("%d",  &option);
 
     switch (option) {
       case 1:
-      playSingleTwoPlayersMatch();
+      playTwoPlayersGame();
       break;
 
       case 2:
-      printf("Play against Computer\n");
+      playSingleTwoPlayersMatchTTB("John", "Mark");
       break;
 
       case 3:
+      printf("2 PLAYERS TIC TOC BOOM\n");
+      break;
+
+      case 4:
+      printf("Play against Computer TIC TOC BOOM\n");
+      break;
+
+      case 5:
       printf("GOOD BYE!!\n");
       break;
 
@@ -127,7 +140,7 @@ void playTwoPlayersGame(){
 
   char playAgain = 'n';
   do {
-    char winner = playSingleTwoPlayersMatch();
+    char winner = playSingleTwoPlayersMatch(playerX, playerO);
     if(winner == 'X'){
       playerXwins++;
     }else if(winner == 'O'){
@@ -145,7 +158,7 @@ void playTwoPlayersGame(){
 
 
 
-char playSingleTwoPlayersMatch(){
+char playSingleTwoPlayersMatch(char *playerXname, char *playerOname){
   struct board myBoard;
   initBoard(&myBoard);
 
@@ -165,27 +178,34 @@ char playSingleTwoPlayersMatch(){
       j++;
     }
 
-
     int pos; // variable that will hold the selected position
 
     if(i%2 == 0){
       do {
-        printf("Where would you like to place X?");
+        printf("Where would you like to place X %s?", playerXname);
         scanf("%d", &pos);
       } while(checkValidMove(myBoard, pos) == -1);
       myBoard.position[pos-1] = 'X';
 
     }else{
       do {
-        printf("Where would you like to place O?");
+        printf("Where would you like to place O %s?", playerOname);
         scanf("%d", &pos);
       } while(checkValidMove(myBoard, pos) == -1);
       myBoard.position[pos-1] = 'O';
     }
     drawBoard(myBoard);
 
-    if(checkWin(myBoard) != 'd'){
-      printf("%c won the game!\n", checkWin(myBoard));
+    char winner = checkWin(myBoard);
+    if(winner != 'd'){
+      if(winner == 'X'){
+        printf("%s won the game!\n", playerXname);
+        return winner;
+      }else if(winner == 'O'){
+        printf("%s won the game!\n", playerOname);
+        return winner;
+      }
+
       return checkWin(myBoard);
       break;
     }
@@ -193,6 +213,133 @@ char playSingleTwoPlayersMatch(){
   }
   return 'd';
 }
+
+char playSingleTwoPlayersMatchTTB(char *playerXname, char *playerOname){
+  struct board myBoard;
+  initBoard(&myBoard);
+  int numberOfBombs;
+  int bombs[3];
+  do {
+    printf("Enter the number of bombs between 1-3\n");
+    scanf(" %d", &numberOfBombs);
+    printf("\n");
+  } while(numberOfBombs != 1 && numberOfBombs != 2 && numberOfBombs != 3);
+
+  printf("number of bombs %d\n", numberOfBombs );
+  srand(time(0));
+  int i = 0;
+  // select at random locations of the bombs (number specified by user)
+  while(i != numberOfBombs){
+    int bomb;
+    bomb = ((rand()%9)+1);
+    printf("%d\n", bomb );
+    // the first bomb position is always accepted
+    if(i == 0){
+      bombs[i] = bomb;
+      printf("Added a bomb\n" );
+      i++;
+    }
+    // in case where more than one bombs is selected every other position is
+    // checked if it is not alredy in the selected list
+    else{
+      int j;
+      char exists = 'n';
+      for (j = 0; j <= i; j++) {
+        if(bombs[j] == bomb){
+          exists = 'y';
+        }
+      }
+      if(exists == 'n'){
+        bombs[i] = bomb;
+        i++;
+      }
+    }
+
+  }
+  int idx;
+  for(idx = 0; idx < numberOfBombs; idx++) {
+    printf("bomb is - %d\n", bombs[idx]);
+  }
+
+
+
+
+  //int i = 0;
+  int j = 0;
+  i = 0; //
+  while(checkFinish(myBoard) == -1) {
+    //display the board with positions only at the beginning
+    if(i == 0){
+      drawBoardPositions();
+    }
+    // adds 1 or 0 to i making sure that the first player is chosen at random
+    // this is only done once at the begining of the game
+    if(j == 0){
+      srand(time(0)); // seed will be set to time to allow randomness
+      i += rand()%2;
+      j++;
+    }
+
+    int pos; // variable that will hold the selected position
+    int b;
+    char hasBomb = 'n';
+    if(i%2 == 0){
+
+      do {
+        printf("Where would you like to place X %s?", playerXname);
+        scanf("%d", &pos);
+      } while(checkValidMove(myBoard, pos) == -1);
+
+      for (b = 0; b < numberOfBombs; b++) {
+        if(bombs[b] == pos){
+          printf("BOOM!!!!\n" );
+          hasBomb = 'y';
+          bombs[b]=10; // deactivate the bmob
+        }
+      }
+      if(hasBomb == 'n'){
+        myBoard.position[pos-1] = 'X';
+      }
+
+
+    }else{
+      do {
+        printf("Where would you like to place O %s?", playerOname);
+        scanf("%d", &pos);
+      } while(checkValidMove(myBoard, pos) == -1);
+      for (b = 0; b < numberOfBombs; b++) {
+        if(bombs[b] == pos){
+          printf("BOOM!!!!\n" );
+          hasBomb = 'y';
+          bombs[b]=10; // deactivate the bmob
+        }
+      }
+      if(hasBomb == 'n'){
+        myBoard.position[pos-1] = 'O';
+      }
+
+    }
+    drawBoard(myBoard);
+
+    char winner = checkWin(myBoard);
+    if(winner != 'd'){
+      if(winner == 'X'){
+        printf("%s won the game!\n", playerXname);
+        return winner;
+      }else if(winner == 'O'){
+        printf("%s won the game!\n", playerOname);
+        return winner;
+      }
+
+      return checkWin(myBoard);
+      break;
+    }
+    i++;
+  }
+  return 'd';
+}
+
+
 
 int checkValidMove(struct board b, int move){
   if(move < 1 && move > 9){
@@ -246,13 +393,15 @@ void drawBoardPositions()
 }
 
 void displayOptions(){
-  printf("************************************************\n");
-  printf("*  WHAT WOULD YOU LIKE TO DO?                  *\n");
-  printf("*                                              *\n");
-  printf("*  PRESS 1 TO PLAY PLAYER 1 VS PLAYER 2 GAME   *\n");
-  printf("*  PRESS 2 TO PLAY PLAYER 1 VS CPU GAME        *\n");
-  printf("*  PRESS 3 TO EXIT                             *\n");
-  printf("************************************************\n");
+  printf("********************************************************\n");
+  printf("*  WHAT WOULD YOU LIKE TO DO?                          *\n");
+  printf("*                                                      *\n");
+  printf("*  PRESS 1 TO PLAY PLAYER 1 VS PLAYER 2 CLASSIC GAME   *\n");
+  printf("*  PRESS 2 TO PLAY PLAYER 1 VS CPU GAME                *\n");
+  printf("*  PRESS 3 TO PLAY PLAYER 1 VS PLAYER 2 TIC TOC BOOM   *\n");
+  printf("*  PRESS 4 TO PLAY PLAYER 1 VS CPU TIC TOC BOOM        *\n");
+  printf("*  PRESS 5 TO EXIT                                     *\n");
+  printf("********************************************************\n");
 }
 
 // checks if either of the players won the game. If X won X will be returned,
@@ -294,6 +443,7 @@ int checkFinish(struct board b){
       return -1;
     }
   }
+  printf("Draw!!\n");
   return 1;
 }
 
