@@ -16,9 +16,15 @@ struct move{
   char player;
 };
 
-struct gameHistory{
+struct game{
+  char playerX[10];
+  char playerO[10];
   struct move moves[22]; // as each player has 3 undo/redo
 };
+
+
+// linked dist to store gameHistory
+
 
 // basic stack structure
 struct stack{
