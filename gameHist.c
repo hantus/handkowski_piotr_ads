@@ -28,7 +28,7 @@ struct game{
 
 
 
-void startGame(struct game *, char *, char *);
+void startGameHist(struct game *, char *, char *);
 
 void addMove(struct moveList **, int, char, int);
 
@@ -51,7 +51,7 @@ int main(int argc, char const *argv[]) {
 }
 
 
-void startGame(struct game * game, char * plX, char * plO){
+void startGameHist(struct game * game, char * plX, char * plO){
   strcpy(game -> playerX, plX);
   strcpy(game -> playerO, plO);
   struct moveList * moves;
