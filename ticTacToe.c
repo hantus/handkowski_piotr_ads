@@ -38,13 +38,16 @@ struct game{
 
 // basic stack structure
 struct stack{
-  struct move moves[22];
-  int top;
+  struct move oneMove;
+  struct stack * next;
+  struct stack * prev;
 };
 
+
+
 struct undoRedo{
-  struct stack mainStack;
-  struct stack undoeMoves;
+  struct stack * mainStack;
+  struct stack * undoneMoves;
 };
 
 //gameHistory
@@ -53,16 +56,15 @@ void addMove(struct moveList **, int, char, int);
 void displayGame(struct game *);
 
 
-// stack
-void init_stack(struct stack*);
-void push(struct stack*, struct move);
-struct move* pop(struct stack*);
-void display(struct stack);
-
-// undoRedo
-void init_undoRedo(struct undoRedo*);
-void stackAddMove(struct undoRedo*, struct move);
-void undo(struct undoRedo*);
+// stack for udo/ redo
+void push(struct stack **, int, char, int);
+struct stack * pop(struct stack *);
+void displayStack(struct stack *); // just for testing
+void mainStackPush(struct undoRedo * , int, char, int);
+void undoneMovesPush(struct undoRedo * , int, char, int);
+struct move * undo(struct undoRedo *);
+struct move * redo(struct undoRedo *);
+void resetUndoneStack(struct undoRedo *); // used whenever a new move is made
 
 
 
@@ -82,29 +84,6 @@ int main(int argc, char const *argv[]) {
 
   startApp();
 
-
-
-  // struct undoRedo unRe;
-  // init_undoRedo(&unRe);
-  // struct move m;
-  // m.player = 'X';
-  // m.position = 3;
-  // stackAddMove(&unRe, m);
-  // struct move m2;
-  // m2.player = 'O';
-  // m2.position = 5;
-  // stackAddMove(&unRe, m2);
-  // printf("Main Stack\n" );
-  // display(unRe.mainStack);
-  // printf("Undone Moves\n" );
-  // display(unRe.undoeMoves);
-  //
-  // undo(&unRe);
-  // printf("Item popped\n" );
-  // printf("Main Stack\n" );
-  // display(unRe.mainStack);
-  // printf("Undone Moves\n" );
-  // display(unRe.undoeMoves);
 
   return 0;
 }
@@ -187,10 +166,12 @@ void playTwoPlayersGame(char* type){
 char playSingleTwoPlayersMatch(char *playerXname, char *playerOname){
   struct board myBoard;
   initBoard(&myBoard);
+  struct undoRedo * unRe;
+  unRe = (struct undoRedo *)malloc(sizeof(struct undoRedo));
 
-
-  int i = 0;
+  int i = 0; // turns
   int j = 0; //
+  int startPos = 0;
   while(checkFinish(myBoard) == -1) {
     //display the board with positions only at the beginning
     if(i == 0){
@@ -201,6 +182,7 @@ char playSingleTwoPlayersMatch(char *playerXname, char *playerOname){
     if(j == 0){
       srand(time(0)); // seed will be set to time to allow randomness
       i += rand()%2;
+      startPos = i;
       j++;
     }
 
@@ -208,19 +190,106 @@ char playSingleTwoPlayersMatch(char *playerXname, char *playerOname){
 
     if(i%2 == 0){
       do {
+        pos = 0;
         printf("Where would you like to place X %s?", playerXname);
         scanf("%d", &pos);
       } while(checkValidMove(myBoard, pos) == -1);
-      myBoard.position[pos-1] = 'X';
+      if(pos <10){
+        myBoard.position[pos-1] = 'X';
+        mainStackPush(unRe, pos, 'X', 1);
+        if(unRe -> undoneMoves != NULL){
+          printf("in if undone is NULL\n" );
+          resetUndoneStack(unRe); // each new move stops the ability to redo prev moves
+        }
+        i++;
+      }else{
+        if(pos == 10 && i > startPos){
+          if(unRe -> mainStack != NULL){
+            struct move * undoneMove = undo(unRe);
+            myBoard.position[(undoneMove -> position)-1] = ' ';
+            i--;
+          }
+        }
+        if(pos == 11){
+          if(unRe -> undoneMoves != NULL){
+            printf("in redo\n" );
+            int isLast;
+            if(unRe -> undoneMoves -> next == NULL){
+              isLast = 1;
+            }else{
+              isLast = -1;
+            }
+            struct move * undoneMove = redo(unRe);
+            myBoard.position[(undoneMove -> position)-1] = 'X';
+            if(isLast == 1){
+              unRe -> undoneMoves = NULL;
+            }
+            i++;
+          }else{
+            printf("No moves to redo\n");
+          }
+        }
+      }
+      //displayStack(unRe -> mainStack);
 
     }else{
+
       do {
         printf("Where would you like to place O %s?", playerOname);
         scanf("%d", &pos);
       } while(checkValidMove(myBoard, pos) == -1);
-      myBoard.position[pos-1] = 'O';
+
+      if(pos < 10){
+        myBoard.position[pos-1] = 'O';
+        mainStackPush(unRe, pos, 'O', 1);
+        if(unRe -> undoneMoves != NULL){
+          resetUndoneStack(unRe); // each new move stops the ability to redo prev moves
+        }
+        i++;
+      }else{
+        if(pos == 10 && i > startPos){
+          if(unRe -> mainStack != NULL){
+            struct move * undoneMove = undo(unRe);
+            myBoard.position[(undoneMove -> position)-1] = ' ';
+            i--;
+          }
+        }
+        if(pos == 11){
+          if(unRe -> undoneMoves != NULL){
+            printf("in redo\n" );
+            int isLast;
+            if(unRe -> undoneMoves -> next == NULL){
+              isLast = 1;
+            }else{
+              isLast = -1;
+            }
+            struct move * undoneMove = redo(unRe);
+            myBoard.position[(undoneMove -> position)-1] = 'O';
+            if(isLast == 1){
+              unRe -> undoneMoves = NULL;
+            }
+            i++;
+          }else{
+            printf("No moves to redo\n");
+          }
+        }
+      }
     }
-    drawBoard(myBoard);
+    printf("%d %d for i and st pos\n", i , startPos);
+    if(i == startPos){
+      printf("in reset main stack\n" );
+      unRe -> mainStack = NULL;
+    }
+    printf("Main stack:\n" );
+    displayStack(unRe -> mainStack);
+    printf("Undone Moves:\n");
+    displayStack(unRe -> undoneMoves);
+
+    if(i != startPos){
+      drawBoard(myBoard);
+    }
+
+
 
     char winner = checkWin(myBoard);
     if(winner != 'd'){
@@ -235,9 +304,9 @@ char playSingleTwoPlayersMatch(char *playerXname, char *playerOname){
       return checkWin(myBoard);
       break;
     }
-    i++;
+
   }
-  return 'd';
+  return 'd'; // for draw
 }
 
 char playSingleTwoPlayersMatchRRS(char *playerXname, char *playerOname){
@@ -357,11 +426,11 @@ char playSingleTwoPlayersMatchRRS(char *playerXname, char *playerOname){
 
 
 int checkValidMove(struct board b, int move){
-  if(move < 1 && move > 9){
-    printf("Selected position must be betweeen 1 and 9\n");
+  if(move < 1 || move > 11){
+    printf("Selected position must be betweeen 1 and 9 or 10 for undo, 11 for redo\n");
     return -1;
   }
-  if(b.position[move -1] != ' '){
+  if(b.position[move -1] != ' ' && move < 10){
     printf("Position %d is already taken! \n", move);
     return -1;
   }else{
@@ -476,54 +545,142 @@ int checkFinish(struct board b){
 
 
 // stack
-void init_stack(struct stack* s){
-  s-> top = -1;
+
+void displayStack(struct stack * myStack){
+  while(myStack != NULL){
+    printf("%c at position %d  -- ", myStack -> oneMove.player, myStack -> oneMove.position);
+    if(myStack -> prev != NULL){
+      printf("Prev: %c at position %d\n", myStack -> prev -> oneMove.player, myStack -> prev -> oneMove.position);
+    }
+    printf("\n");
+    myStack = myStack -> next;
+  }
 }
 
-void push(struct stack* s, struct move m){
-  s-> top++;
-  s-> moves[s-> top] = m;
+// acts as a push method for stack
+void push(struct stack ** moves, int pos , char pl, int safe){
+  struct move * tempMove;
+  struct stack * current;
+  //struct stack ** previous;
+  if(*moves == NULL){
+
+    tempMove = (struct move *) malloc(sizeof(struct move));
+    tempMove -> position = pos;
+    tempMove -> player = pl;
+    tempMove -> wasSafe = safe;
+
+    struct stack * tempstack;
+    tempstack = (struct stack *) malloc (sizeof(struct stack));
+    tempstack -> oneMove = *tempMove;
+    tempstack -> next = NULL;
+    tempstack -> prev = NULL;
+
+    *moves = tempstack;
+  }
+  else{
+    current = *moves;
+    while(current -> next != NULL){
+      //previous = &current;
+      current = current -> next;
+    }
+    tempMove = (struct move *) malloc(sizeof(struct move));
+    tempMove -> position = pos;
+    tempMove -> player = pl;
+    tempMove -> wasSafe = safe;
+
+    struct stack * tempstack;
+    tempstack = (struct stack *) malloc (sizeof(struct stack));
+    tempstack -> oneMove = *tempMove;
+    tempstack -> next = NULL;
+    tempstack -> prev = current;
+
+    current -> next = tempstack;
+
+  }
 }
 
-struct move* pop(struct stack* s){
-  if(s-> top == -1){
+
+void mainStackPush(struct undoRedo* unRedo, int pos, char pl, int safe){
+  struct stack ** mainSt;
+  mainSt = &(unRedo -> mainStack);
+  push(mainSt, pos, pl, safe);
+}
+
+void undoneMovesPush(struct undoRedo* unRedo, int pos, char pl, int safe){
+  struct stack ** undoneSt;
+  undoneSt = &(unRedo -> undoneMoves);
+  push(undoneSt, pos, pl, safe);
+}
+
+
+struct stack * pop(struct stack * st){
+  struct stack * top;
+  top = st;
+  if(top == NULL){
     return NULL;
   }
-  struct move* m;
-  m = &(s-> moves[s-> top]);
-  s-> top--;
-  return m;
-}
 
-void display(struct stack s){
-  int i;
-  for (i = 0; i <= s.top; i++) {
-    printf("Move number %d\n", i+1 );
-    printf("Player %c position %d\n", s.moves[i].player, s.moves[i].position );
+  while(top -> next != NULL){
+    top = top ->next;
   }
-}
 
-
-
-
-void stackAddMove(struct undoRedo * s, struct move m){
-  push(&(s->mainStack), m);
-}
-
-// undo undoRedo
-void init_undoRedo(struct undoRedo * unRe){
-  init_stack(&(unRe-> mainStack));
-  init_stack(&(unRe-> undoeMoves));
-}
-
-
-void undo(struct undoRedo * unRe){
-  if(unRe -> mainStack.top != -1){
-    struct move* m;
-    m = pop(&(unRe-> mainStack));
-    push(&(unRe-> undoeMoves), *m);
+  if(top -> prev != NULL){
+    top -> prev -> next = NULL;
   }
+  return top;
 }
+
+struct move * undo(struct undoRedo * unRe){
+  struct stack * mainSt;
+  struct stack * undoneSt;
+  struct stack * popped;
+  mainSt = unRe -> mainStack;
+  undoneSt = unRe -> undoneMoves;
+
+  if(mainSt != NULL){
+    popped = pop(mainSt);
+    struct move * mv = &(popped -> oneMove);
+    // could also push the popped item but I have already created a func that takes
+    // other arguments than a stack
+    int pos = mv -> position;
+    char pl = mv -> player;
+    int safe = mv -> wasSafe;
+    undoneMovesPush(unRe, pos , pl, safe);
+    free(popped);
+    return mv;
+  }
+  return NULL;
+}
+
+struct move * redo(struct undoRedo * unRe){
+  struct stack * mainSt;
+  struct stack * undoneSt;
+  struct stack * popped;
+  mainSt = unRe -> mainStack;
+  undoneSt = unRe -> undoneMoves;
+
+  if(undoneSt != NULL){
+    popped = pop(undoneSt);
+    struct move * mv = &(popped -> oneMove);
+    // could also push the popped item but I have already created a func that takes
+    // other arguments than a stack
+    int pos = mv -> position;
+    char pl = mv -> player;
+    int safe = mv -> wasSafe;
+    mainStackPush(unRe, pos , pl, safe);
+    free(popped);
+    return mv;
+  }
+  return NULL;
+}
+
+
+void resetUndoneStack(struct undoRedo * unRe){
+  printf("Im in reset undone\n" );
+  unRe -> undoneMoves = NULL;
+}
+
+
 
 // Gamie history
 

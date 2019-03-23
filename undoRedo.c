@@ -32,23 +32,47 @@ struct stack * pop(struct stack *);
 void displayStack(struct stack *); // just for testing
 void mainStackPush(struct undoRedo * , int, char, int);
 void undoneMovesPush(struct undoRedo * , int, char, int);
+struct move * undo(struct undoRedo *);
+struct move * redo(struct undoRedo *);
+void resetUndoneStack(struct undoRedo *); // used whenever a new move is made
 
 
 int main(int argc, char const *argv[]) {
 
-  // struct game myGame;
-  // startGame(&myGame, "Peter", "Yola");
-  // printf("%s plays with %s\n", myGame.playerX, myGame.playerO);
-  // struct stack ** gameMoves;
-  // gameMoves = &(myGame.moves);
   struct undoRedo gameStack;
-  //mainSt = &(gameStack.mainStack);
-  //undoneSt = &(gameStack.undoneMoves);
+  undo(&gameStack);
   mainStackPush(&gameStack, 5, 'X', 1);
   mainStackPush(&gameStack, 1, 'O', 1);
   mainStackPush(&gameStack, 6, 'X', 1);
   mainStackPush(&gameStack, 4, 'O', 1);
   displayStack(gameStack.mainStack);
+  undo(&gameStack);
+  undo(&gameStack);
+  printf("Now two undone moves\n" );
+  printf("the Main stack is:\n" );
+  displayStack(gameStack.mainStack);
+  printf("And the undone moves:\n" );
+  displayStack(gameStack.undoneMoves);
+  redo(&gameStack);
+  printf("One redo\n" );
+  displayStack(gameStack.mainStack);
+  printf("And the undone moves:\n" );
+  displayStack(gameStack.undoneMoves);
+  resetUndoneStack(&gameStack);
+
+  printf("after reset main\n" );
+  displayStack(gameStack.mainStack);
+  printf("and undo\n" );
+  displayStack(gameStack.undoneMoves);
+  undo(&gameStack);
+  printf("after reset main\n" );
+  undo(&gameStack);
+  undo(&gameStack);
+  undo(&gameStack);
+  printf("Main stack:\n" );
+  displayStack(gameStack.mainStack);
+  printf("and undo\n" );
+  displayStack(gameStack.undoneMoves);
 
 
   return 0;
@@ -105,8 +129,6 @@ void push(struct stack ** moves, int pos , char pl, int safe){
     current -> next = tempstack;
 
   }
-
-  printf("Move added\n" );
 }
 
 
@@ -117,16 +139,82 @@ void mainStackPush(struct undoRedo* unRedo, int pos, char pl, int safe){
 }
 
 void undoneMovesPush(struct undoRedo* unRedo, int pos, char pl, int safe){
-  struct stack ** mainSt;
-  mainSt = &(unRedo -> mainStack);
-  push(mainSt, pos, pl, safe);
+  struct stack ** undoneSt;
+  undoneSt = &(unRedo -> undoneMoves);
+  push(undoneSt, pos, pl, safe);
 }
 
-struct stack * pop(struct stack * st){
-  struct stack * top;
-  top = st;
+
+struct stack * pop(struct stack * top){
+
+  if(top == NULL){
+    return NULL;
+  }
+
   while(top -> next != NULL){
     top = top ->next;
   }
+
+  if(top -> prev != NULL){
+    top -> prev -> next = NULL;
+  }else{
+    printf("in the last stack\n" );
+    struct stack * lastStack;
+    lastStack = (struct stack *)malloc(sizeof(struct stack));
+    *lastStack = *top;
+    free(top);
+    top  = (struct stack *)malloc(sizeof(struct stack));
+    top = NULL;
+    return lastStack;
+  }
   return top;
+}
+
+struct move * undo(struct undoRedo * unRe){
+  struct stack * mainSt;
+  struct stack * undoneSt;
+  struct stack * popped;
+  mainSt = unRe -> mainStack;
+  undoneSt = unRe -> undoneMoves;
+
+  if(mainSt != NULL){
+    popped = pop(mainSt);
+    struct move * mv = &(popped -> oneMove);
+    // could also push the popped item but I have already created a func that takes
+    // other arguments than a stack
+    int pos = mv -> position;
+    char pl = mv -> player;
+    int safe = mv -> wasSafe;
+    undoneMovesPush(unRe, pos , pl, safe);
+    free(popped);
+    return mv;
+  }
+  return NULL;
+}
+
+struct move * redo(struct undoRedo * unRe){
+  struct stack * mainSt;
+  struct stack * undoneSt;
+  struct stack * popped;
+  mainSt = unRe -> mainStack;
+  undoneSt = unRe -> undoneMoves;
+
+  if(undoneSt != NULL){
+    popped = pop(undoneSt);
+    struct move * mv = &(popped -> oneMove);
+    // could also push the popped item but I have already created a func that takes
+    // other arguments than a stack
+    int pos = mv -> position;
+    char pl = mv -> player;
+    int safe = mv -> wasSafe;
+    mainStackPush(unRe, pos , pl, safe);
+    free(popped);
+    return mv;
+  }
+  return NULL;
+}
+
+
+void resetUndoneStack(struct undoRedo * unRe){
+  unRe -> undoneMoves = NULL;
 }
