@@ -3,6 +3,8 @@
 #include <time.h>
 #include <string.h>
 
+struct savedGames ** gameList; // global variable for saved games
+
 #define SIZE 9
 
 struct board{
@@ -34,7 +36,7 @@ struct game{
 };
 
 struct savedGames{
-  struct game * thisGame;
+  struct game thisGame;
   struct savedGames * nextGame;
 };
 
@@ -57,6 +59,8 @@ void startGameHist(struct game *, char *, char *);
 void addMove(struct moveList **, int, char, int);
 void displayGame(struct game *);
 void addSavedGame(struct savedGames **, struct game*);
+void askToSave(struct savedGames **, struct game *);
+void replayGame(int);
 
 
 // stack for udo/ redo
@@ -82,10 +86,16 @@ void startApp();
 char playSingleTwoPlayersMatch(char *, char *);
 char playSingleTwoPlayersMatchRRS(char *, char *);
 void playTwoPlayersGame(char *);
+void savedGamesMenu();
 
 int main(int argc, char const *argv[]) {
 
+  gameList = (struct savedGames **)malloc(sizeof(struct savedGames));
+  *gameList = NULL;
+
+
   startApp();
+
 
 
   return 0;
@@ -98,7 +108,7 @@ void startApp(){
 
   int option;
 
-  while(option != 5){
+  while(option != 6){
     displayOptions();
     scanf("%d",  &option);
 
@@ -120,6 +130,10 @@ void startApp(){
       break;
 
       case 5:
+      savedGamesMenu();
+      break;
+
+      case 6:
       printf("GOOD BYE!!\n");
       break;
 
@@ -219,20 +233,22 @@ char playSingleTwoPlayersMatch(char *playerXname, char *playerOname){
             struct move * undoneMove = undo(unRe);
             myBoard.position[(undoneMove -> position)-1] = ' ';
             i--;
+            pos = undoneMove -> position;
           }
 
         }
         if(pos == 11){
           if(unRe -> undoneMoves.top != -1){
-            struct move * undoneMove = redo(unRe);
-            myBoard.position[(undoneMove -> position)-1] = 'X';
+            struct move * redoneMove = redo(unRe);
+            myBoard.position[(redoneMove -> position)-1] = 'X';
             i++;
+            pos = redoneMove -> position;
           }else{
             printf("No moves to redo\n");
           }
         }
       }
-      //addMove(recordedMoves, pos, 'X', 1);
+      addMove(recordedMoves, pos, 'X', 1);
 
 
     }else{
@@ -257,21 +273,23 @@ char playSingleTwoPlayersMatch(char *playerXname, char *playerOname){
             struct move * undoneMove = undo(unRe);
             myBoard.position[(undoneMove -> position)-1] = ' ';
             i--;
+            pos = undoneMove -> position;
           }
         }
         if(pos == 11){
           if(unRe -> undoneMoves.top != -1){
-            struct move * undoneMove = redo(unRe);
-            myBoard.position[(undoneMove -> position)-1] = 'O';
+            struct move * redoneMove = redo(unRe);
+            myBoard.position[(redoneMove -> position)-1] = 'O';
             i++;
+            pos = redoneMove -> position;
           }else{
             printf("No moves to redo\n");
           }
         }
       }
-      //addMove(recordedMoves, pos, 'O', 1);
+      addMove(recordedMoves, pos, 'O', 1);
     }
-
+    displayGame(oneGame);
     if(i != startPos){
       drawBoard(myBoard);
     }
@@ -282,9 +300,13 @@ char playSingleTwoPlayersMatch(char *playerXname, char *playerOname){
     if(winner != 'd'){
       if(winner == 'X'){
         printf("%s won the game!\n", playerXname);
+        oneGame -> winner = 'X';
+        askToSave(gameList, oneGame);
         return winner;
       }else if(winner == 'O'){
         printf("%s won the game!\n", playerOname);
+        oneGame -> winner = 'O';
+        askToSave(gameList, oneGame);
         return winner;
       }
 
@@ -293,6 +315,8 @@ char playSingleTwoPlayersMatch(char *playerXname, char *playerOname){
     }
 
   }
+  oneGame -> winner = 'd';
+  askToSave(gameList, oneGame);
   return 'd'; // for draw
 }
 
@@ -471,7 +495,8 @@ void displayOptions(){
   printf("*  PRESS 2 TO PLAY PLAYER 1 VS CPU GAME                *\n");
   printf("*  PRESS 3 TO PLAY PLAYER 1 VS PLAYER 2 TIC TOC BOOM   *\n");
   printf("*  PRESS 4 TO PLAY PLAYER 1 VS CPU TIC TOC BOOM        *\n");
-  printf("*  PRESS 5 TO EXIT                                     *\n");
+  printf("*  PRESS 5 FOR SAVED GAMES                             *\n");
+  printf("*  PRESS 6 TO EXIT                                     *\n");
   printf("********************************************************\n");
 }
 
@@ -517,16 +542,6 @@ int checkFinish(struct board b){
   printf("Draw!!\n");
   return 1;
 }
-
-
-
-
-
-
-
-
-
-
 
 
 
@@ -669,30 +684,149 @@ void addMove(struct moveList ** moves, int pos , char pl, int safe){
 
 
 void displayGame(struct game * oneGame){
-  printf("%s* VS %s\n", oneGame -> playerX, oneGame -> playerO);
-  struct moveList * temp;
-  temp = oneGame -> moves;
-  while(temp != NULL){
-    if(temp -> oneMove.player == 'X'){
-      printf("%s placed %c in position %d\n", oneGame -> playerX,  temp -> oneMove.player, temp -> oneMove.position );
-    }else{
-      printf("%s placed %c in position %d\n", oneGame -> playerO,  temp -> oneMove.player, temp -> oneMove.position );
-    }
 
-    temp = temp ->link;
+  if(oneGame -> winner == 'X'){
+    printf("*%s* VS %s\n", oneGame -> playerX, oneGame -> playerO);
+  }
+  if(oneGame -> winner == 'O'){
+    printf("%s VS *%s*\n", oneGame -> playerX, oneGame -> playerO);
+  }
+  if(oneGame -> winner == 'd'){
+    printf("%s VS %s\n", oneGame -> playerX, oneGame -> playerO);
   }
 }
+// void displayGame(struct game * oneGame){
+//   printf("in display Game\n" );
+//   printf("%s VS %s\n", oneGame -> playerX, oneGame -> playerO);
+//   struct moveList * temp;
+//   temp = oneGame -> moves;
+//   while(temp != NULL){
+//     if(temp -> oneMove.player == 'X'){
+//       printf("%s placed %c in position %d\n", oneGame -> playerX,  temp -> oneMove.player, temp -> oneMove.position );
+//     }else{
+//       printf("%s placed %c in position %d\n", oneGame -> playerO,  temp -> oneMove.player, temp -> oneMove.position );
+//     }
+//
+//     temp = temp ->link;
+//   }
+// }
 
 void addSavedGame(struct savedGames ** savedGameList, struct game * newGame){
+  struct savedGames * new = (struct savedGames *)malloc(sizeof(struct savedGames));
+  new -> thisGame = *newGame;
+  new -> nextGame = NULL;
   if(*savedGameList == NULL){
-    (*savedGameList) -> thisGame = newGame;
-    (*savedGameList) -> nextGame = NULL;
+    *savedGameList = new;
   }else{
     struct savedGames * current = *savedGameList;
-    while(current -> nextGame){
+    while(current -> nextGame != NULL){
       current = current -> nextGame;
     }
-    current -> thisGame = newGame;
-    current -> nextGame = NULL;
+
+    current -> nextGame = new;
   }
 }
+
+void askToSave(struct savedGames ** gameList, struct game * game){
+  char answer;
+  printf("Would you like to save the game? y/n:\n " );
+  scanf(" %c", &answer);
+  if(answer == 'y' || answer == 'Y'){
+    addSavedGame(gameList, game);
+  }
+}
+
+
+
+void savedGamesMenu(){
+  if(*gameList != NULL){
+    printf("   SAVED GAMES\n");
+    int i = 1;
+    struct savedGames * games = *gameList;
+    while (games -> nextGame != NULL) {
+    printf("%d. ",i );
+    displayGame(&(games -> thisGame));
+    games = games -> nextGame;
+    i++;
+    }
+    printf("%d. ",i );
+    displayGame(&(games -> thisGame));
+    printf("Enter the number of the game to replay, or 0 to exit: \n");
+    int choice;
+    scanf("%d", &choice);
+    printf("\n");
+    if(choice == 0){
+      printf("Exit saved Games\n" );
+    }
+    if(choice > 0 && choice <= i){
+      printf("in choice above 0\n" );
+      replayGame(choice);
+    }else{
+      printf("Game number %d does not exist\n", choice );
+      savedGamesMenu();
+    }
+
+  }else{
+    printf("There are no saved games\n");
+  }
+
+}
+
+void replayGame(int gameNo){
+  int i;
+  struct savedGames * games = *gameList;
+  for (i = 1; i < gameNo; i++) {
+    games = games -> nextGame;
+  }
+  printf("The selected game is \n" );
+  displayGame(&(games -> thisGame));
+  struct moveList * moves = games -> thisGame.moves;
+  struct board replayBoard;
+  initBoard(&replayBoard);
+  while (moves -> link != NULL) {
+    // if(moves -> oneMove.player == 'X'){
+    //   printf("%s selected position %d\n", games -> thisGame.playerX, moves -> oneMove.position );
+    // }else{
+    //   printf("%s selected position %d\n", games -> thisGame.playerX, moves -> oneMove.position );
+    // }
+    if(moves -> oneMove.wasSafe == -1){
+      printf("BOOM!!! THERE WAS A BOMB IN THIS POSITION! NOW IT IS SAFE!\n");
+    }else{
+      int pos = moves -> oneMove.position;
+      char pl = moves -> oneMove.player;
+      printf("\n");
+      if(replayBoard.position[pos-1] != ' '){
+        replayBoard.position[pos-1] = ' ';
+        if(pl == 'X'){
+          printf("%s undone the move at position %d\n", games -> thisGame.playerO, pos);
+        }else{
+          printf("%s undone the move at position %d\n", games -> thisGame.playerX, pos);
+        }
+
+      }else{
+        replayBoard.position[pos-1] = pl;
+        if(pl == 'X'){
+          printf("%s selected position %d\n", games -> thisGame.playerX, pos);
+        }else{
+          printf("%s selected position %d\n", games -> thisGame.playerO, pos);
+        }
+      }
+    }
+    drawBoard(replayBoard);
+    moves = moves -> link;
+    sleep(2);
+  }
+  replayBoard.position[moves -> oneMove.position -1] = moves -> oneMove.player;
+  if(moves -> oneMove.player == 'X'){
+    printf("%s SELECTED POSITION %d AND WON THE GAME!\n",
+    games -> thisGame.playerX, moves -> oneMove.position);
+  }else{
+    printf("%s SELECTED POSITION %d AND WON THE GAME!\n",
+    games -> thisGame.playerO, moves -> oneMove.position);
+  }
+
+  drawBoard(replayBoard);
+  sleep(2);
+
+}
+//myBoard.position[pos-1] = 'X';
