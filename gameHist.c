@@ -51,7 +51,7 @@ int main(int argc, char const *argv[]) {
 }
 
 
-void startGameHist(struct game * game, char * plX, char * plO){
+void startGame(struct game * game, char * plX, char * plO){
   strcpy(game -> playerX, plX);
   strcpy(game -> playerO, plO);
   struct moveList * moves;
