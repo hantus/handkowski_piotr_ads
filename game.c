@@ -87,14 +87,19 @@ char playSingleTwoPlayersMatch(char *, char *);
 char playSingleTwoPlayersMatchRRS(char *, char *);
 void playTwoPlayersGame(char *);
 void savedGamesMenu();
+int generateMove(struct board);
+
 
 int main(int argc, char const *argv[]) {
 
   gameList = (struct savedGames **)malloc(sizeof(struct savedGames));
   *gameList = NULL;
 
+  struct board b;
+  initBoard(&b);
+  generateMove(b);
 
-  startApp();
+  //startApp();
 
 
 
@@ -829,4 +834,75 @@ void replayGame(int gameNo){
   sleep(2);
 
 }
-//myBoard.position[pos-1] = 'X';
+
+
+int generateMove(struct board b){
+  printf("Generating move\n" );
+  // if board is empty then select at randomnes
+  int isEmpty = 1;
+  int i;
+  for (i = 0; i < 9; i++) {
+    if(b.position[i] != ' '){
+      isEmpty = -1;
+    }
+  }
+  if(isEmpty ==1){
+    srand(time(0)); // seed will be set to time to allow randomness
+    int randomPosition = rand()%9;
+    printf("random pos is: %d\n", randomPosition);
+    return randomPosition;
+  }
+  //block or finish game
+  if(b.position[0] == b.position[1] && b.position[2] == ' '){
+    return 2;
+  }else if (b.position[1] == b.position[2] && b.position[0] == ' ') {
+    return 0;
+  }else if (b.position[1] == b.position[2] && b.position[0] == ' ') {
+    return 0;
+  }else if (b.position[3] == b.position[4] && b.position[5] == ' ') {
+    return 5;
+  }else if (b.position[4] == b.position[5] && b.position[3] == ' ') {
+    return 3;
+  }else if (b.position[6] == b.position[7] && b.position[8] == ' ') {
+    return 8;
+  }else if (b.position[7] == b.position[8] && b.position[6] == ' ') {
+    return 6;
+  }else if (b.position[0] == b.position[2] && b.position[1] == ' ') {
+    return 1;
+  }else if (b.position[3] == b.position[5] && b.position[4] == ' ') {
+    return 4;
+  }else if (b.position[6] == b.position[8] && b.position[7] == ' ') {
+    return 7;
+  }else if (b.position[0] == b.position[3] && b.position[6] == ' ') {
+    return 6;
+  }else if (b.position[3] == b.position[6] && b.position[0] == ' ') {
+    return 0;
+  }else if (b.position[0] == b.position[6] && b.position[3] == ' ') {
+    return 3;
+  }else if (b.position[1] == b.position[4] && b.position[7] == ' ') {
+    return 7;
+  }else if (b.position[1] == b.position[7] && b.position[4] == ' ') {
+    return 4;
+  }else if (b.position[4] == b.position[7] && b.position[1] == ' ') {
+    return 1;
+  }else if (b.position[2] == b.position[5] && b.position[8] == ' ') {
+    return 8;
+  }else if (b.position[5] == b.position[8] && b.position[2] == ' ') {
+    return 2;
+  }else if (b.position[2] == b.position[8] && b.position[5] == ' ') {
+    return 5;
+  }else if (b.position[0] == b.position[4] && b.position[8] == ' ') {
+    return 8;
+  }else if (b.position[4] == b.position[8] && b.position[0] == ' ') {
+    return 0;
+  }else if (b.position[0] == b.position[8] && b.position[4] == ' ') {
+    return 4;
+  }else if (b.position[2] == b.position[4] && b.position[6] == ' ') {
+    return 6;
+  }else if (b.position[4] == b.position[6] && b.position[2] == ' ') {
+    return 2;
+  }else if (b.position[2] == b.position[6] && b.position[4] == ' ') {
+    return 4;
+  }
+  return -1;
+}
