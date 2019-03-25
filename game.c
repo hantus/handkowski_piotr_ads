@@ -78,6 +78,7 @@ struct move * redo(struct undoRedo *);
 void initBoard(struct board*);
 void drawBoard(struct board);
 void drawBoardPositions();
+void printBoom();
 int checkValidMove(struct board, int);
 char checkWin(struct board);
 int checkFinish(struct board);
@@ -85,6 +86,7 @@ void displayOptions();
 void startApp();
 char playSingleTwoPlayersMatch(char *, char *);
 char playSingleTwoPlayersMatchRRS(char *, char *);
+void playAgainstComp();
 void playTwoPlayersGame(char *);
 void savedGamesMenu();
 int generateMove(struct board);
@@ -95,11 +97,9 @@ int main(int argc, char const *argv[]) {
   gameList = (struct savedGames **)malloc(sizeof(struct savedGames));
   *gameList = NULL;
 
-  struct board b;
-  initBoard(&b);
-  generateMove(b);
 
-  //startApp();
+
+  startApp();
 
 
 
@@ -107,9 +107,27 @@ int main(int argc, char const *argv[]) {
 }
 
 void startApp(){
-  printf("        ##############################\n");
-  printf("        #         TIC TAC TOE        #\n");
-  printf("        ##############################\n\n");
+
+  printf("\n");
+  printf("\n");
+  printf(" ,--------. ,--.  ,-----.     ,--------.   ,---.    ,-----.     ,--------.  ,-----.  ,------.  \n");
+  printf(" '--.  .--' |  | '  .--./     '--.  .--'  /  O  \\  '  .--./     '--.  .--' '  .-.  ' |  .---'  \n");
+  printf("    |  |    |  | |  |            |  |    |  .-.  | |  |            |  |    |  | |  | |  `--,   \n");
+  printf("    |  |    |  | '  '--'\\        |  |    |  | |  | '  '--'\\        |  |    '  '-'  ' |  `---.  \n");
+  printf("    `--'    `--'  `-----'        `--'    `--' `--'  `-----'        `--'     `-----'  `------'  \n");
+  printf("\n");
+  printf("\n");
+
+
+
+
+
+
+
+
+
+
+
 
   int option;
 
@@ -123,11 +141,11 @@ void startApp(){
       break;
 
       case 2:
-      playTwoPlayersGame("RRS"); // Russian Roulette style
+      playAgainstComp();
       break;
 
       case 3:
-      printf("2 PLAYERS TIC TOC BOOM\n");
+      playTwoPlayersGame("RRS"); // Russian Roulette style
       break;
 
       case 4:
@@ -325,6 +343,135 @@ char playSingleTwoPlayersMatch(char *playerXname, char *playerOname){
   return 'd'; // for draw
 }
 
+
+void playAgainstComp(){
+  struct board myBoard;
+  initBoard(&myBoard);
+  struct undoRedo * unRe;
+  unRe = (struct undoRedo *)malloc(sizeof(struct undoRedo));
+  init_undoRedo(unRe);
+  struct game * oneGame;
+  oneGame = (struct game *)malloc(sizeof(struct game));
+ // startGameHist(oneGame, playerXname, playerOname);
+  struct moveList ** recordedMoves = &(oneGame -> moves);
+
+
+
+  int i = 0; // turns
+  int j = 0; //
+  int startPos = 0; // used to display positions when all moves are undone
+  while(checkFinish(myBoard) == -1) {
+    display(unRe);
+    //display the board with positions only at the beginning
+    if(i == startPos){
+      drawBoardPositions();
+    }
+    // adds 1 or 0 to i making sure that the first player is chosen at random
+    // this is only done once at the begining of the game
+    if(j == 0){
+      srand(time(0)); // seed will be set to time to allow randomness
+      i += rand()%2;
+      startPos = i;
+      j++;
+    }
+
+    int pos; // variable that will hold the selected position
+
+    if(i%2 == 0){
+      do {
+        pos = 0;
+        //printf("Where would you like to place X %s?", playerXname);
+        printf("Where would you like to place X Peter?");
+        scanf("%d", &pos);
+      } while(checkValidMove(myBoard, pos) == -1);
+      if(pos <10){
+
+        myBoard.position[pos-1] = 'X';
+        struct move * mv = (struct move *)malloc(sizeof(struct move));
+        mv -> position = pos;
+        mv -> player = 'X';
+        unReAddNewMove(unRe, *mv);
+        i++;
+      }else{
+        if(pos == 10 && i > startPos){
+          if(unRe -> mainStack.top != -1){
+            struct move * undoneMove = undo(unRe);
+            myBoard.position[(undoneMove -> position)-1] = ' ';
+            i--;
+            pos = undoneMove -> position;
+          }
+
+        }
+        if(pos == 11){
+          if(unRe -> undoneMoves.top != -1){
+            struct move * redoneMove = redo(unRe);
+            myBoard.position[(redoneMove -> position)-1] = 'X';
+            i++;
+            pos = redoneMove -> position;
+          }else{
+            printf("No moves to redo\n");
+          }
+        }
+      }
+      addMove(recordedMoves, pos, 'X', 1);
+
+
+    }else{
+
+      // do {
+      //   //printf("Where would you like to place O %s?", playerOname);
+      //   printf("Where would you like to place O Mr Computer?");
+      //   scanf("%d", &pos);
+      // } while(checkValidMove(myBoard, pos) == -1);
+
+      printf("Where would you like to place O Mr Computer?");
+      sleep(2);
+      pos = generateMove(myBoard)+1;
+      if(pos < 10){
+        myBoard.position[pos-1] = 'O';
+
+        struct move * mv = (struct move *)malloc(sizeof(struct move));
+        mv -> position = pos;
+        mv -> player = 'O';
+        unReAddNewMove(unRe, *mv);
+
+        i++;
+      }
+
+      addMove(recordedMoves, pos, 'O', 1);
+    }
+    displayGame(oneGame);
+    if(i != startPos){
+      drawBoard(myBoard);
+    }
+
+
+
+    char winner = checkWin(myBoard);
+    if(winner != 'd'){
+      if(winner == 'X'){
+        //printf("%s won the game!\n", playerXname);
+        printf("Peter won the game!\n");
+        oneGame -> winner = 'X';
+        askToSave(gameList, oneGame);
+        //return winner;
+      }else if(winner == 'O'){
+        //printf("%s won the game!\n", playerOname);
+        printf("Mr Computer won the game!\n");
+        oneGame -> winner = 'O';
+        askToSave(gameList, oneGame);
+        //return winner;
+      }
+
+      //return checkWin(myBoard);
+      break;
+    }
+
+  }
+  oneGame -> winner = 'd';
+  askToSave(gameList, oneGame);
+}
+
 char playSingleTwoPlayersMatchRRS(char *playerXname, char *playerOname){
   struct board myBoard;
   initBoard(&myBoard);
@@ -392,7 +539,7 @@ char playSingleTwoPlayersMatchRRS(char *playerXname, char *playerOname){
 
       for (b = 0; b < numberOfBombs; b++) {
         if(bombs[b] == pos){
-          printf("BOOM!!!!\n" );
+          printBoom();
           hasBomb = 'y';
           bombs[b]=10; // deactivate the bmob
         }
@@ -409,7 +556,7 @@ char playSingleTwoPlayersMatchRRS(char *playerXname, char *playerOname){
       } while(checkValidMove(myBoard, pos) == -1);
       for (b = 0; b < numberOfBombs; b++) {
         if(bombs[b] == pos){
-          printf("BOOM!!!!\n" );
+          printBoom();
           hasBomb = 'y';
           bombs[b]=10; // deactivate the bmob
         }
@@ -438,6 +585,7 @@ char playSingleTwoPlayersMatchRRS(char *playerXname, char *playerOname){
   }
   return 'd';
 }
+
 
 
 
@@ -762,8 +910,8 @@ void savedGamesMenu(){
     printf("\n");
     if(choice == 0){
       printf("Exit saved Games\n" );
-    }
-    if(choice > 0 && choice <= i){
+
+    }else if(choice > 0 && choice <= i){
       printf("in choice above 0\n" );
       replayGame(choice);
     }else{
@@ -846,63 +994,229 @@ int generateMove(struct board b){
       isEmpty = -1;
     }
   }
-  if(isEmpty ==1){
+  if(isEmpty == 1){
     srand(time(0)); // seed will be set to time to allow randomness
-    int randomPosition = rand()%9;
+    int randomPosition = rand()%8;
     printf("random pos is: %d\n", randomPosition);
     return randomPosition;
   }
-  //block or finish game
-  if(b.position[0] == b.position[1] && b.position[2] == ' '){
+  //finish game if possible
+  if(b.position[0] == b.position[1] && b.position[2] == ' ' && b.position[1] != ' '){
     return 2;
-  }else if (b.position[1] == b.position[2] && b.position[0] == ' ') {
+  }else if (b.position[1] == b.position[2] && b.position[0] == ' ' && b.position[1] == 'O') {
     return 0;
-  }else if (b.position[1] == b.position[2] && b.position[0] == ' ') {
+  }else if (b.position[1] == b.position[2] && b.position[0] == ' ' && b.position[1] == 'O') {
     return 0;
-  }else if (b.position[3] == b.position[4] && b.position[5] == ' ') {
+  }else if (b.position[3] == b.position[4] && b.position[5] == ' ' && b.position[3] == 'O') {
     return 5;
-  }else if (b.position[4] == b.position[5] && b.position[3] == ' ') {
+  }else if (b.position[4] == b.position[5] && b.position[3] == ' ' && b.position[4] == 'O') {
     return 3;
-  }else if (b.position[6] == b.position[7] && b.position[8] == ' ') {
+  }else if (b.position[6] == b.position[7] && b.position[8] == ' ' && b.position[6] == 'O') {
     return 8;
-  }else if (b.position[7] == b.position[8] && b.position[6] == ' ') {
+  }else if (b.position[7] == b.position[8] && b.position[6] == ' ' && b.position[7] == 'O') {
     return 6;
-  }else if (b.position[0] == b.position[2] && b.position[1] == ' ') {
+  }else if (b.position[0] == b.position[2] && b.position[1] == ' ' && b.position[0] == 'O') {
     return 1;
-  }else if (b.position[3] == b.position[5] && b.position[4] == ' ') {
+  }else if (b.position[3] == b.position[5] && b.position[4] == ' ' && b.position[3] == 'O') {
     return 4;
-  }else if (b.position[6] == b.position[8] && b.position[7] == ' ') {
+  }else if (b.position[6] == b.position[8] && b.position[7] == ' ' && b.position[6] == 'O') {
     return 7;
-  }else if (b.position[0] == b.position[3] && b.position[6] == ' ') {
+  }else if (b.position[0] == b.position[3] && b.position[6] == ' ' && b.position[0] == 'O') {
     return 6;
-  }else if (b.position[3] == b.position[6] && b.position[0] == ' ') {
+  }else if (b.position[3] == b.position[6] && b.position[0] == ' ' && b.position[3] == 'O') {
     return 0;
-  }else if (b.position[0] == b.position[6] && b.position[3] == ' ') {
+  }else if (b.position[0] == b.position[6] && b.position[3] == ' ' && b.position[0] == 'O') {
     return 3;
-  }else if (b.position[1] == b.position[4] && b.position[7] == ' ') {
+  }else if (b.position[1] == b.position[4] && b.position[7] == ' ' && b.position[1] == 'O') {
     return 7;
-  }else if (b.position[1] == b.position[7] && b.position[4] == ' ') {
+  }else if (b.position[1] == b.position[7] && b.position[4] == ' ' && b.position[1] == 'O') {
     return 4;
-  }else if (b.position[4] == b.position[7] && b.position[1] == ' ') {
+  }else if (b.position[4] == b.position[7] && b.position[1] == ' ' && b.position[4] == 'O') {
     return 1;
-  }else if (b.position[2] == b.position[5] && b.position[8] == ' ') {
+  }else if (b.position[2] == b.position[5] && b.position[8] == ' ' && b.position[2] == 'O') {
     return 8;
-  }else if (b.position[5] == b.position[8] && b.position[2] == ' ') {
+  }else if (b.position[5] == b.position[8] && b.position[2] == ' ' && b.position[5] == 'O') {
     return 2;
-  }else if (b.position[2] == b.position[8] && b.position[5] == ' ') {
+  }else if (b.position[2] == b.position[8] && b.position[5] == ' ' && b.position[2] == 'O') {
     return 5;
-  }else if (b.position[0] == b.position[4] && b.position[8] == ' ') {
+  }else if (b.position[0] == b.position[4] && b.position[8] == ' ' && b.position[0] == 'O') {
     return 8;
-  }else if (b.position[4] == b.position[8] && b.position[0] == ' ') {
+  }else if (b.position[4] == b.position[8] && b.position[0] == ' ' && b.position[4] == 'O') {
     return 0;
-  }else if (b.position[0] == b.position[8] && b.position[4] == ' ') {
+  }else if (b.position[0] == b.position[8] && b.position[4] == ' ' && b.position[0] == 'O') {
     return 4;
-  }else if (b.position[2] == b.position[4] && b.position[6] == ' ') {
+  }else if (b.position[2] == b.position[4] && b.position[6] == ' ' && b.position[2] == 'O') {
     return 6;
-  }else if (b.position[4] == b.position[6] && b.position[2] == ' ') {
+  }else if (b.position[4] == b.position[6] && b.position[2] == ' ' && b.position[4] == 'O') {
     return 2;
-  }else if (b.position[2] == b.position[6] && b.position[4] == ' ') {
+  }else if (b.position[2] == b.position[6] && b.position[4] == ' ' && b.position[2] == 'O') {
     return 4;
   }
-  return -1;
+  //block opponent from winning
+  if(b.position[0] == b.position[1] && b.position[2] == ' ' && b.position[1] != ' '){
+    return 2;
+  }else if (b.position[1] == b.position[2] && b.position[0] == ' ' && b.position[1] != ' ') {
+    return 0;
+  }else if (b.position[1] == b.position[2] && b.position[0] == ' ' && b.position[1] != ' ') {
+    return 0;
+  }else if (b.position[3] == b.position[4] && b.position[5] == ' ' && b.position[3] != ' ') {
+    return 5;
+  }else if (b.position[4] == b.position[5] && b.position[3] == ' ' && b.position[4] != ' ') {
+    return 3;
+  }else if (b.position[6] == b.position[7] && b.position[8] == ' ' && b.position[6] != ' ') {
+    return 8;
+  }else if (b.position[7] == b.position[8] && b.position[6] == ' ' && b.position[7] != ' ') {
+    return 6;
+  }else if (b.position[0] == b.position[2] && b.position[1] == ' ' && b.position[0] != ' ') {
+    return 1;
+  }else if (b.position[3] == b.position[5] && b.position[4] == ' ' && b.position[3] != ' ') {
+    return 4;
+  }else if (b.position[6] == b.position[8] && b.position[7] == ' ' && b.position[6] != ' ') {
+    return 7;
+  }else if (b.position[0] == b.position[3] && b.position[6] == ' ' && b.position[0] != ' ') {
+    return 6;
+  }else if (b.position[3] == b.position[6] && b.position[0] == ' ' && b.position[3] != ' ') {
+    return 0;
+  }else if (b.position[0] == b.position[6] && b.position[3] == ' ' && b.position[0] != ' ') {
+    return 3;
+  }else if (b.position[1] == b.position[4] && b.position[7] == ' ' && b.position[1] != ' ') {
+    return 7;
+  }else if (b.position[1] == b.position[7] && b.position[4] == ' ' && b.position[1] != ' ') {
+    return 4;
+  }else if (b.position[4] == b.position[7] && b.position[1] == ' ' && b.position[4] != ' ') {
+    return 1;
+  }else if (b.position[2] == b.position[5] && b.position[8] == ' ' && b.position[2] != ' ') {
+    return 8;
+  }else if (b.position[5] == b.position[8] && b.position[2] == ' ' && b.position[5] != ' ') {
+    return 2;
+  }else if (b.position[2] == b.position[8] && b.position[5] == ' ' && b.position[2] != ' ') {
+    return 5;
+  }else if (b.position[0] == b.position[4] && b.position[8] == ' ' && b.position[0] != ' ') {
+    return 8;
+  }else if (b.position[4] == b.position[8] && b.position[0] == ' ' && b.position[4] != ' ') {
+    return 0;
+  }else if (b.position[0] == b.position[8] && b.position[4] == ' ' && b.position[0] != ' ') {
+    return 4;
+  }else if (b.position[2] == b.position[4] && b.position[6] == ' ' && b.position[2] != ' ') {
+    return 6;
+  }else if (b.position[4] == b.position[6] && b.position[2] == ' ' && b.position[4] != ' ') {
+    return 2;
+  }else if (b.position[2] == b.position[6] && b.position[4] == ' ' && b.position[2] != ' ') {
+    return 4;
+  }
+
+  //
+  printf("got to here\n" );
+  //int i;
+  for (i = 0; i < 9; i++) {
+    printf("%d\n", i );
+    if(b.position[i] == 'O'){
+      if(i == 0){
+        if(b.position[i+1] == ' '){
+          return i+1;
+        }else if(b.position[i+3] == ' '){
+          return i+3;
+        }else if(b.position[i+4] == ' '){
+          return i+4;
+        }
+      }
+      else if(i == 1){
+        if(b.position[i+1] == ' '){
+          return i+1;
+        }else if(b.position[i+3] == ' '){
+          return i+3;
+        }else if(b.position[i-1] == ' '){
+          return i-1;
+        }
+      }
+      else if(i == 2){
+        if(b.position[i+2] == ' '){
+          return i+2;
+        }else if(b.position[i+3] == ' '){
+          return i+3;
+        }else if(b.position[i-1] == ' '){
+          return i-1;
+        }
+      }
+      else if(i == 3){
+        if(b.position[i+1] == ' '){
+          return i+1;
+        }else if(b.position[i+3] == ' '){
+          return i+3;
+        }else if(b.position[i-3] == ' '){
+          return i-3;
+        }
+      }
+      else if(i == 4){
+        if(b.position[i+1] == ' '){
+          return i+1;
+        }else if(b.position[i+3] == ' '){
+          return i+3;
+        }else if(b.position[i+4] == ' '){
+          return i+4;
+        }
+      }
+      else if(i == 5){
+        if(b.position[i-1] == ' '){
+          return i-1;
+        }else if(b.position[i+3] == ' '){
+          return i+3;
+        }else if(b.position[i-3] == ' '){
+          return i-3;
+        }
+      }
+      else if(i == 6){
+        if(b.position[i+1] == ' '){
+          return i+1;
+        }else if(b.position[i-3] == ' '){
+          return i-3;
+        }else if(b.position[i-2] == ' '){
+          return i-2;
+        }
+      }
+      else if(i == 7){
+        if(b.position[i+1] == ' '){
+          return i+1;
+        }else if(b.position[i-3] == ' '){
+          return i-3;
+        }else if(b.position[i-1] == ' '){
+          return i-1;
+        }
+      }
+      else if(i == 8){
+        if(b.position[i-1] == ' '){
+          return i-1;
+        }else if(b.position[i-3] == ' '){
+          return i-3;
+        }else if(b.position[i-4] == ' '){
+          return i-4;
+        }
+      }
+    }
+  }
+
+  // if a sutable move has not been found in the above select a move at randomnes
+  int isValid = -1;
+  while (isValid == -1) {
+    srand(time(0)); // seed will be set to time to allow randomness
+    int randomPos = rand()%8;
+    printf("random pos is: %d\n", randomPos);
+    if(b.position[randomPos] == ' '){
+      isValid = 1;
+      return randomPos;
+    }
+  }
+  return 1;
+}
+
+
+
+void printBoom(){
+
+ printf(" ,-----.    ,-----.   ,-----.  ,--.   ,--.  \n");
+ printf(" |  |) /_  '  .-.  ' '  .-.  ' |   `.'   |  \n");
+ printf(" |  .-.  \\ |  | |  | |  | |  | |  |'.'|  |  \n");
+ printf(" |  '--' / '  '-'  ' '  '-'  ' |  |   |  |  \n");
+ printf(" `------'   `-----'   `-----'  `--'   `--'  \n");
+
 }
