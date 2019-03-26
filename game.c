@@ -7,604 +7,397 @@ struct savedGames ** gameList; // global variable for saved games
 
 #define SIZE 9
 
+// board implemented as an array of chars
 struct board{
   char position[SIZE];
 };
 
 
-
-
-// linked dist to store gameHistory
+// data structure for each move
 struct move{
   int position;
   char player;
   int wasSafe; // for Tic Toc Boom, to indicate if bomb was there
 };
 
-
+// data structure for storing all moves of a game
+// implemented as a linked list
 struct moveList{
   struct move oneMove;
   struct moveList * link;
 };
 
-
+// a structure that holds all information about one game
 struct game{
   char playerX[10];
   char playerO[10];
-  char winner;
+  char winner; // can be X, O or d for draw
   struct moveList * moves; // as each player has 3 undo/redo
 };
 
+// a data structure that holds all saved GAMES
+// implemented as a linked list
 struct savedGames{
   struct game thisGame;
   struct savedGames * nextGame;
 };
 
 
-
-
-// basic stack structure
+// basic stack structure with a move as data
 struct stack{
   struct move moves[9];
   int top;
 };
 
+// a structure that is used to implement undo/ redo features
+// implemented with 2 stacks
 struct undoRedo{
   struct stack mainStack;
   struct stack undoneMoves;
 };
 
-//gameHistory
-void startGameHist(struct game *, char *, char *);
-void addMove(struct moveList **, int, char, int);
-void displayGame(struct game *);
-void addSavedGame(struct savedGames **, struct game*);
-void askToSave(struct savedGames **, struct game *);
-void replayGame(int);
 
+// stack for udo/ redo functions
 
-// stack for udo/ redo
+// initializes the stack with starting position
 void init_stack(struct stack *);
+// initializes both stacks for redo and undo features
 void init_undoRedo(struct undoRedo *);
+// pushes a new item on the top of a stack
 void push(struct stack *, struct move);
+// rempves and returns
 struct move * pop(struct stack *);
-void display(struct undoRedo *);
+// adds a new move to the undoRedo structure
 void unReAddNewMove(struct undoRedo *, struct move);
+// undoes a move
 struct move * undo(struct undoRedo *);
+// redoes an undone move
 struct move * redo(struct undoRedo *);
 
 
+//gameHistory functions
 
-void initBoard(struct board*);
-void drawBoard(struct board);
-void drawBoardPositions();
-void printBoom();
-int checkValidMove(struct board, int);
-char checkWin(struct board);
-int checkFinish(struct board);
-void displayOptions();
-void startApp();
-char playSingleTwoPlayersMatch(char *, char *);
-char playSingleTwoPlayersMatchRRS(char *, char *);
-void playAgainstComp();
-void playTwoPlayersGame(char *);
+//initializes the game history
+void startGameHist(struct game *, char *, char *);
+//adds a move to a move list
+void addMove(struct moveList **, int, char, int);
+// displays a game in the saved games option
+void displayGame(struct game *);
+// displays saved games
 void savedGamesMenu();
+// saves a game in a global list
+void addSavedGame(struct savedGames **, struct game*);
+// asks user if he/she wishes to save the game
+void askToSave(struct savedGames **, struct game *);
+// automaticaly replays a game
+void replayGame(int);
+
+
+
+// other functions
+
+// initializes empty board
+void initBoard(struct board*);
+// draws position on the board. used at the begining of each game
+void drawBoardPositions();
+// draws the board with all pieces
+void drawBoard(struct board);
+// prints BOOM when a field with a bomb is selected
+void printBoom();
+// checks if a selected move is valid
+int checkValidMove(struct board, int);
+// checks the board to see if a winning combination is present
+char checkWin(struct board);
+// checks the board to see if all positions have been filled
+int checkFinish(struct board);
+// displays game options
+void displayOptions();
+// starts the application
+void startApp();
+// starts one of the 4 available games depending on choice, the chosen type
+// of game can be then played multiple times
+void playGame(char* , char* );
+// start a single game of a chosen type
+char playMatch(char *, char *, char*, char*);
+// automatically selects an intelligent move
 int generateMove(struct board);
 
 
-int main(int argc, char const *argv[]) {
 
+int main(int argc, char const *argv[]) {
+  // initializes a structure for storing saved games
   gameList = (struct savedGames **)malloc(sizeof(struct savedGames));
   *gameList = NULL;
-
-
-
   startApp();
-
-
-
   return 0;
 }
 
-void startApp(){
-
-  printf("\n");
-  printf("\n");
-  printf(" ,--------. ,--.  ,-----.     ,--------.   ,---.    ,-----.     ,--------.  ,-----.  ,------.  \n");
-  printf(" '--.  .--' |  | '  .--./     '--.  .--'  /  O  \\  '  .--./     '--.  .--' '  .-.  ' |  .---'  \n");
-  printf("    |  |    |  | |  |            |  |    |  .-.  | |  |            |  |    |  | |  | |  `--,   \n");
-  printf("    |  |    |  | '  '--'\\        |  |    |  | |  | '  '--'\\        |  |    '  '-'  ' |  `---.  \n");
-  printf("    `--'    `--'  `-----'        `--'    `--' `--'  `-----'        `--'     `-----'  `------'  \n");
-  printf("\n");
-  printf("\n");
 
 
+// stack implementation
 
+void init_stack(struct stack * st){
+  st -> top = -1;
+}
 
+// initializes both stacks in undoRedo structure
+void init_undoRedo(struct undoRedo * unRe){
+  init_stack(&(unRe -> mainStack));
+  init_stack(&(unRe -> undoneMoves));
+}
 
-
-
-
-
-
-
-
-  int option;
-
-  while(option != 6){
-    displayOptions();
-    scanf("%d",  &option);
-
-    switch (option) {
-      case 1:
-      playTwoPlayersGame("Basic"); // classic TIC-TAC-TOE
-      break;
-
-      case 2:
-      playAgainstComp();
-      break;
-
-      case 3:
-      playTwoPlayersGame("RRS"); // Russian Roulette style
-      break;
-
-      case 4:
-      printf("Play against Computer TIC TOC BOOM\n");
-      break;
-
-      case 5:
-      savedGamesMenu();
-      break;
-
-      case 6:
-      printf("GOOD BYE!!\n");
-      break;
-
-      default :
-      printf("SELECTED OPTION IS INVALID!\n\n");
-    }
+// pushes a new item on the top of a stack
+void push(struct stack * st, struct move mv){
+  if(st->top < 8){
+    st -> top++;
+    st -> moves[st -> top] = mv;
   }
 }
 
+// removes and returnes a top item from a stack
+struct move * pop(struct stack * st){
+  if(st -> top >= 0){
+    struct move * mv = &(st -> moves[st -> top]);
+    st -> top--;
+    return mv;
+  }
+  return NULL;
+}
 
-void playTwoPlayersGame(char* type){
-  char playerX[10];
-  char playerO[10];
-  printf("Please enter player's one name: ");
-  scanf(" %[^\n]", playerX);
-  printf("Please enter player's two name: ");
-  scanf(" %[^\n]", playerO);
-  int playerXwins = 0;
-  int playerOwins = 0;
+// adds a new move to the main stack of the undoRedo structure which then
+// can be undone
+void unReAddNewMove(struct undoRedo * unRe, struct move mv){
+  push(&(unRe -> mainStack), mv);
+  // whenever a new move is added the redo function is no longer available
+  unRe -> undoneMoves.top = -1;
+}
 
-  char playAgain = 'n';
-  char winner;
-  do {
-    if(strcmp(type,"Basic") == 0){
-      winner = playSingleTwoPlayersMatch(playerX, playerO);
-    }else{
-      winner = playSingleTwoPlayersMatchRRS(playerX, playerO);
-    }
+// undo function
+struct move * undo(struct undoRedo * unRe){
+  if(unRe -> mainStack.top >= 0){
+    //popps a move from the main stack
+    struct move * mv = pop(&(unRe -> mainStack));
+    // and pushes it on the top of the other
+    push(&(unRe -> undoneMoves), *mv);
+    return mv;
+  }
+  return NULL;
+}
 
-    if(winner == 'X'){
-      playerXwins++;
-    }else if(winner == 'O'){
-      playerOwins++;
-    }
-
-    printf("%s - %d VS %s - %d\n", playerX, playerXwins, playerO, playerOwins);
-
-    printf("Do you want to play again? y/n\n");
-    scanf(" %c", &playAgain);
-
-  } while(playAgain == 'y' || playAgain == 'Y');
-
+// redo function, does the reverse of undo
+struct move * redo(struct undoRedo * unRe){
+  if(unRe -> undoneMoves.top >= 0){
+    struct move * mv = pop(&(unRe -> undoneMoves));
+    push(&(unRe -> mainStack), *mv);
+    return mv;
+  }
+  return NULL;
 }
 
 
-
-char playSingleTwoPlayersMatch(char *playerXname, char *playerOname){
-  struct board myBoard;
-  initBoard(&myBoard);
-  struct undoRedo * unRe;
-  unRe = (struct undoRedo *)malloc(sizeof(struct undoRedo));
-  init_undoRedo(unRe);
-  struct game * oneGame;
-  oneGame = (struct game *)malloc(sizeof(struct game));
-  startGameHist(oneGame, playerXname, playerOname);
-  struct moveList ** recordedMoves = &(oneGame -> moves);
+// Game history functions implementation
 
 
-
-  int i = 0; // turns
-  int j = 0; //
-  int startPos = 0; // used to display positions when all moves are undone
-  while(checkFinish(myBoard) == -1) {
-    display(unRe);
-    //display the board with positions only at the beginning
-    if(i == startPos){
-      drawBoardPositions();
-    }
-    // adds 1 or 0 to i making sure that the first player is chosen at random
-    // this is only done once at the begining of the game
-    if(j == 0){
-      srand(time(0)); // seed will be set to time to allow randomness
-      i += rand()%2;
-      startPos = i;
-      j++;
-    }
-
-    int pos; // variable that will hold the selected position
-
-    if(i%2 == 0){
-      do {
-        pos = 0;
-        printf("Where would you like to place X %s?", playerXname);
-        scanf("%d", &pos);
-      } while(checkValidMove(myBoard, pos) == -1);
-      if(pos <10){
-
-        myBoard.position[pos-1] = 'X';
-        struct move * mv = (struct move *)malloc(sizeof(struct move));
-        mv -> position = pos;
-        mv -> player = 'X';
-        unReAddNewMove(unRe, *mv);
-        i++;
-      }else{
-        if(pos == 10 && i > startPos){
-          if(unRe -> mainStack.top != -1){
-            struct move * undoneMove = undo(unRe);
-            myBoard.position[(undoneMove -> position)-1] = ' ';
-            i--;
-            pos = undoneMove -> position;
-          }
-
-        }
-        if(pos == 11){
-          if(unRe -> undoneMoves.top != -1){
-            struct move * redoneMove = redo(unRe);
-            myBoard.position[(redoneMove -> position)-1] = 'X';
-            i++;
-            pos = redoneMove -> position;
-          }else{
-            printf("No moves to redo\n");
-          }
-        }
-      }
-      addMove(recordedMoves, pos, 'X', 1);
-
-
-    }else{
-
-      do {
-        printf("Where would you like to place O %s?", playerOname);
-        scanf("%d", &pos);
-      } while(checkValidMove(myBoard, pos) == -1);
-
-      if(pos < 10){
-        myBoard.position[pos-1] = 'O';
-
-        struct move * mv = (struct move *)malloc(sizeof(struct move));
-        mv -> position = pos;
-        mv -> player = 'O';
-        unReAddNewMove(unRe, *mv);
-
-        i++;
-      }else{
-        if(pos == 10 && i > startPos){
-          if(unRe -> mainStack.top != -1){
-            struct move * undoneMove = undo(unRe);
-            myBoard.position[(undoneMove -> position)-1] = ' ';
-            i--;
-            pos = undoneMove -> position;
-          }
-        }
-        if(pos == 11){
-          if(unRe -> undoneMoves.top != -1){
-            struct move * redoneMove = redo(unRe);
-            myBoard.position[(redoneMove -> position)-1] = 'O';
-            i++;
-            pos = redoneMove -> position;
-          }else{
-            printf("No moves to redo\n");
-          }
-        }
-      }
-      addMove(recordedMoves, pos, 'O', 1);
-    }
-    displayGame(oneGame);
-    if(i != startPos){
-      drawBoard(myBoard);
-    }
-
-
-
-    char winner = checkWin(myBoard);
-    if(winner != 'd'){
-      if(winner == 'X'){
-        printf("%s won the game!\n", playerXname);
-        oneGame -> winner = 'X';
-        askToSave(gameList, oneGame);
-        return winner;
-      }else if(winner == 'O'){
-        printf("%s won the game!\n", playerOname);
-        oneGame -> winner = 'O';
-        askToSave(gameList, oneGame);
-        return winner;
-      }
-
-      return checkWin(myBoard);
-      break;
-    }
-
-  }
-  oneGame -> winner = 'd';
-  askToSave(gameList, oneGame);
-  return 'd'; // for draw
+// initializes the game structore
+void startGameHist(struct game * game, char * plX, char * plO){
+  strcpy(game -> playerX, plX);
+  strcpy(game -> playerO, plO);
+  struct moveList * moves;
+  moves = NULL;
+  game -> moves = moves;
 }
 
+// adds a new move to a move list
+void addMove(struct moveList ** moves, int pos , char pl, int safe){
+  struct move * tempMove;
+  struct moveList * current;
+  // when the structure is empty
+  if(*moves == NULL){
 
-void playAgainstComp(){
-  struct board myBoard;
-  initBoard(&myBoard);
-  struct undoRedo * unRe;
-  unRe = (struct undoRedo *)malloc(sizeof(struct undoRedo));
-  init_undoRedo(unRe);
-  struct game * oneGame;
-  oneGame = (struct game *)malloc(sizeof(struct game));
- // startGameHist(oneGame, playerXname, playerOname);
-  struct moveList ** recordedMoves = &(oneGame -> moves);
+    tempMove = (struct move *) malloc(sizeof(struct move));
+    tempMove -> position = pos;
+    tempMove -> player = pl;
+    tempMove -> wasSafe = safe;
 
+    struct moveList * tempMoveList;
+    tempMoveList = (struct moveList *) malloc (sizeof(struct moveList));
+    tempMoveList -> oneMove = *tempMove;
+    tempMoveList -> link = NULL;
 
-
-  int i = 0; // turns
-  int j = 0; //
-  int startPos = 0; // used to display positions when all moves are undone
-  while(checkFinish(myBoard) == -1) {
-    display(unRe);
-    //display the board with positions only at the beginning
-    if(i == startPos){
-      drawBoardPositions();
+    *moves = tempMoveList;
+  }
+  // when there are already items in it
+  else{
+    current = *moves;
+    while(current -> link != NULL){
+      current = current -> link;
     }
-    // adds 1 or 0 to i making sure that the first player is chosen at random
-    // this is only done once at the begining of the game
-    if(j == 0){
-      srand(time(0)); // seed will be set to time to allow randomness
-      i += rand()%2;
-      startPos = i;
-      j++;
-    }
+    tempMove = (struct move *) malloc(sizeof(struct move));
+    tempMove -> position = pos;
+    tempMove -> player = pl;
+    tempMove -> wasSafe = safe;
 
-    int pos; // variable that will hold the selected position
+    struct moveList * tempMoveList;
+    tempMoveList = (struct moveList *) malloc (sizeof(struct moveList));
+    tempMoveList -> oneMove = *tempMove;
+    tempMoveList -> link = NULL;
 
-    if(i%2 == 0){
-      do {
-        pos = 0;
-        //printf("Where would you like to place X %s?", playerXname);
-        printf("Where would you like to place X Peter?");
-        scanf("%d", &pos);
-      } while(checkValidMove(myBoard, pos) == -1);
-      if(pos <10){
-
-        myBoard.position[pos-1] = 'X';
-        struct move * mv = (struct move *)malloc(sizeof(struct move));
-        mv -> position = pos;
-        mv -> player = 'X';
-        unReAddNewMove(unRe, *mv);
-        i++;
-      }else{
-        if(pos == 10 && i > startPos){
-          if(unRe -> mainStack.top != -1){
-            struct move * undoneMove = undo(unRe);
-            myBoard.position[(undoneMove -> position)-1] = ' ';
-            i--;
-            pos = undoneMove -> position;
-          }
-
-        }
-        if(pos == 11){
-          if(unRe -> undoneMoves.top != -1){
-            struct move * redoneMove = redo(unRe);
-            myBoard.position[(redoneMove -> position)-1] = 'X';
-            i++;
-            pos = redoneMove -> position;
-          }else{
-            printf("No moves to redo\n");
-          }
-        }
-      }
-      addMove(recordedMoves, pos, 'X', 1);
-
-
-    }else{
-
-      // do {
-      //   //printf("Where would you like to place O %s?", playerOname);
-      //   printf("Where would you like to place O Mr Computer?");
-      //   scanf("%d", &pos);
-      // } while(checkValidMove(myBoard, pos) == -1);
-
-      printf("Where would you like to place O Mr Computer?");
-      sleep(2);
-      pos = generateMove(myBoard)+1;
-      if(pos < 10){
-        myBoard.position[pos-1] = 'O';
-
-        struct move * mv = (struct move *)malloc(sizeof(struct move));
-        mv -> position = pos;
-        mv -> player = 'O';
-        unReAddNewMove(unRe, *mv);
-
-        i++;
-      }
-
-      addMove(recordedMoves, pos, 'O', 1);
-    }
-    displayGame(oneGame);
-    if(i != startPos){
-      drawBoard(myBoard);
-    }
-
-
-
-    char winner = checkWin(myBoard);
-    if(winner != 'd'){
-      if(winner == 'X'){
-        //printf("%s won the game!\n", playerXname);
-        printf("Peter won the game!\n");
-        oneGame -> winner = 'X';
-        askToSave(gameList, oneGame);
-        //return winner;
-      }else if(winner == 'O'){
-        //printf("%s won the game!\n", playerOname);
-        printf("Mr Computer won the game!\n");
-        oneGame -> winner = 'O';
-        askToSave(gameList, oneGame);
-        //return winner;
-      }
-
-      //return checkWin(myBoard);
-      break;
-    }
+    current -> link = tempMoveList;
 
   }
-  oneGame -> winner = 'd';
-  askToSave(gameList, oneGame);
 }
 
-char playSingleTwoPlayersMatchRRS(char *playerXname, char *playerOname){
-  struct board myBoard;
-  initBoard(&myBoard);
-  int numberOfBombs;
-  int bombs[3];
-  do {
-    printf("Enter the number of bombs between 1-3\n");
-    scanf(" %d", &numberOfBombs);
-    printf("\n");
-  } while(numberOfBombs != 1 && numberOfBombs != 2 && numberOfBombs != 3);
+// displays saved games
+// checks who won the game and prints ** arount the name of the winner
+void displayGame(struct game * oneGame){
 
-  printf("number of bombs %d\n", numberOfBombs );
-  srand(time(0));
-  int i = 0;
-  // select at random locations of the bombs (number specified by user)
-  while(i != numberOfBombs){
-    int bomb;
-    bomb = ((rand()%9)+1);
-    // the first bomb position is always accepted
-    if(i == 0){
-      bombs[i] = bomb;
-      i++;
-    }
-    // in case where more than one bombs is selected every other position is
-    // checked if it is not alredy in the selected list
-    else{
-      int j;
-      char exists = 'n';
-      for (j = 0; j <= i; j++) {
-        if(bombs[j] == bomb){
-          exists = 'y';
-        }
-      }
-      if(exists == 'n'){
-        bombs[i] = bomb;
-        i++;
-      }
-    }
+  if(oneGame -> winner == 'X'){
+    printf("*%s* VS %s\n", oneGame -> playerX, oneGame -> playerO);
   }
-
-  int j = 0;
-  i = 0; //
-  while(checkFinish(myBoard) == -1) {
-    //display the board with positions only at the beginning
-    if(i == 0){
-      drawBoardPositions();
-    }
-    // adds 1 or 0 to i making sure that the first player is chosen at random
-    // this is only done once at the begining of the game
-    if(j == 0){
-      srand(time(0)); // seed will be set to time to allow randomness
-      i += rand()%2;
-      j++;
-    }
-
-    int pos; // variable that will hold the selected position
-    int b;
-    char hasBomb = 'n';
-    if(i%2 == 0){
-
-      do {
-        printf("Where would you like to place X %s?", playerXname);
-        scanf("%d", &pos);
-      } while(checkValidMove(myBoard, pos) == -1);
-
-      for (b = 0; b < numberOfBombs; b++) {
-        if(bombs[b] == pos){
-          printBoom();
-          hasBomb = 'y';
-          bombs[b]=10; // deactivate the bmob
-        }
-      }
-      if(hasBomb == 'n'){
-        myBoard.position[pos-1] = 'X';
-      }
-
-
-    }else{
-      do {
-        printf("Where would you like to place O %s?", playerOname);
-        scanf("%d", &pos);
-      } while(checkValidMove(myBoard, pos) == -1);
-      for (b = 0; b < numberOfBombs; b++) {
-        if(bombs[b] == pos){
-          printBoom();
-          hasBomb = 'y';
-          bombs[b]=10; // deactivate the bmob
-        }
-      }
-      if(hasBomb == 'n'){
-        myBoard.position[pos-1] = 'O';
-      }
-
-    }
-    drawBoard(myBoard);
-
-    char winner = checkWin(myBoard);
-    if(winner != 'd'){
-      if(winner == 'X'){
-        printf("%s won the game!\n", playerXname);
-        return winner;
-      }else if(winner == 'O'){
-        printf("%s won the game!\n", playerOname);
-        return winner;
-      }
-
-      return checkWin(myBoard);
-      break;
-    }
-    i++;
+  if(oneGame -> winner == 'O'){
+    printf("%s VS *%s*\n", oneGame -> playerX, oneGame -> playerO);
   }
-  return 'd';
+  if(oneGame -> winner == 'd'){
+    printf("%s VS %s\n", oneGame -> playerX, oneGame -> playerO);
+  }
 }
 
-
-
-
-int checkValidMove(struct board b, int move){
-  if(move < 1 || move > 11){
-    printf("Selected position must be betweeen 1 and 9 or 10 for undo, 11 for redo\n");
-    return -1;
-  }
-  if(b.position[move -1] != ' ' && move < 10){
-    printf("Position %d is already taken! \n", move);
-    return -1;
+// adds a new game to the saved games linked list
+void addSavedGame(struct savedGames ** savedGameList, struct game * newGame){
+  struct savedGames * new = (struct savedGames *)malloc(sizeof(struct savedGames));
+  new -> thisGame = *newGame;
+  new -> nextGame = NULL;
+  if(*savedGameList == NULL){
+    *savedGameList = new;
   }else{
-    return 1;
+    struct savedGames * current = *savedGameList;
+    while(current -> nextGame != NULL){
+      current = current -> nextGame;
+    }
+    current -> nextGame = new;
+  }
+}
+
+// asks the user if he/she wants to save the game
+void askToSave(struct savedGames ** gameList, struct game * game){
+  char answer;
+  printf("WOULD YOU LIKE TO SAVE THE GAME? y/n:\n " );
+  scanf(" %c", &answer);
+  if(answer == 'y' || answer == 'Y'){
+    addSavedGame(gameList, game);
   }
 }
 
 
+// displays a list of saved games
+void savedGamesMenu(){
+  if(*gameList != NULL){
+    printf("   SAVED GAMES\n");
+    int i = 1;// used to print the game number
+    struct savedGames * games = *gameList;
+    while (games -> nextGame != NULL) {
+    printf("%d. ",i );
+    displayGame(&(games -> thisGame));
+    games = games -> nextGame;
+    i++;
+    }
+    // prints the last game that wasnt printed in the loop
+    printf("%d. ",i );
+    displayGame(&(games -> thisGame));
+    //ask the user for the game number to be replayed and if correct number
+    // has been provided replays the game
+    printf("ENTER THE NUMBER OF GHE GAME TO REPLAY, OR 0 TO EXIT: \n");
+    int choice;
+    scanf("%d", &choice);
+    printf("\n");
+    if(choice == 0){
+      // DO NOTHING JUST EXIT
 
+    }else if(choice > 0 && choice <= i){
+      replayGame(choice);
+    }else{
+      printf("GAME NUMBER %d DOES NOT EXIST\n", choice );
+      savedGamesMenu();
+    }
 
+  }else{
+    printf("THERE ARE NO SAVED GAMES\n");
+  }
+}
+
+// replays the game automatically giving descripton what move was made
+void replayGame(int gameNo){
+  int i; // used to iterate untill the selected game number
+  struct savedGames * games = *gameList;
+  for (i = 1; i < gameNo; i++) {
+    games = games -> nextGame;
+  }
+  displayGame(&(games -> thisGame));
+  struct moveList * moves = games -> thisGame.moves;
+  struct board replayBoard;
+  initBoard(&replayBoard);
+  // each move is displayed separately with 2 sec pause
+  while (moves -> link != NULL) {
+    int pos = moves -> oneMove.position;
+    char pl = moves -> oneMove.player;
+    // this is for Tic Toc Boom game. displays BOOM if a position with a bomb
+    // was selected
+    if(moves -> oneMove.wasSafe == -1){
+      printf("%s SELECTED POSITION %d\n", games -> thisGame.playerX, pos);
+      printBoom();
+      printf("BOOM!!! THERE WAS A BOMB IN THIS POSITION! NOW IT IS SAFE!\n");
+
+    }else{
+
+      printf("\n");
+      // checks if the move made is an undo move and displays appropriate message
+      if(replayBoard.position[pos-1] != ' '){
+        replayBoard.position[pos-1] = ' ';
+        if(pl == 'X'){
+          printf("%s UNDONE THE MOVE AT POSITION %d\n", games -> thisGame.playerO, pos);
+        }else{
+          printf("%s UNDONE THE MOVE AT POSITION  %d\n", games -> thisGame.playerX, pos);
+        }
+
+      }else{
+        replayBoard.position[pos-1] = pl;
+        if(pl == 'X'){
+          printf("%s SELECTED POSITION %d\n", games -> thisGame.playerX, pos);
+        }else{
+          printf("%s SELECTED POSITION %d\n", games -> thisGame.playerO, pos);
+        }
+      }
+    }
+    drawBoard(replayBoard);
+    moves = moves -> link;
+    sleep(2);
+  }
+  // prints the last move that wasn't printed in the loop
+  replayBoard.position[moves -> oneMove.position -1] = moves -> oneMove.player;
+  if(moves -> oneMove.player == 'X'){
+    printf("%s SELECTED POSITION %d\n",
+    games -> thisGame.playerX, moves -> oneMove.position);
+  }else{
+    printf("%s SELECTED POSITION %d\n",
+    games -> thisGame.playerO, moves -> oneMove.position);
+  }
+  // prints who won the game
+  char winner = games -> thisGame.winner;
+  if(winner == 'X'){
+    printf("%s WON THE GAME!\n", games -> thisGame.playerX);
+  }else if(winner == 'O'){
+    printf("%s WON THE GAME!\n", games -> thisGame.playerO);
+  }else{
+    printf("DRAW!\n");
+  }
+
+  drawBoard(replayBoard);
+  sleep(2);
+}
+
+// othe functions implementation
+
+// initializes empty board with a space char in each position
 void initBoard(struct board* b){
   int i;
   for (i = 0; i < SIZE; i++) {
@@ -612,21 +405,7 @@ void initBoard(struct board* b){
   }
 }
 
-
-
-void drawBoard(struct board b)
-{
-  printf("\n     |     |     \n");
-  printf("  %c  |  %c  |  %c  \n", b.position[0], b.position[1], b.position[2]);
-  printf("_____|_____|_____\n");
-  printf("     |     |     \n");
-  printf("  %c  |  %c  |  %c  \n", b.position[3], b.position[4], b.position[5]);
-  printf("_____|_____|_____\n");
-  printf("     |     |     \n");
-  printf("  %c  |  %c  |  %c  \n", b.position[6], b.position[7], b.position[8]);
-  printf("     |     |     \n");
-
-}
+// draws board positions, used at the beginning of each game
 void drawBoardPositions()
 {
   printf("\n     |     |     \n");
@@ -640,22 +419,43 @@ void drawBoardPositions()
   printf("     |     |     \n");
 }
 
-void displayOptions(){
-  printf("********************************************************\n");
-  printf("*  WHAT WOULD YOU LIKE TO DO?                          *\n");
-  printf("*                                                      *\n");
-  printf("*  PRESS 1 TO PLAY PLAYER 1 VS PLAYER 2 CLASSIC GAME   *\n");
-  printf("*  PRESS 2 TO PLAY PLAYER 1 VS CPU GAME                *\n");
-  printf("*  PRESS 3 TO PLAY PLAYER 1 VS PLAYER 2 TIC TOC BOOM   *\n");
-  printf("*  PRESS 4 TO PLAY PLAYER 1 VS CPU TIC TOC BOOM        *\n");
-  printf("*  PRESS 5 FOR SAVED GAMES                             *\n");
-  printf("*  PRESS 6 TO EXIT                                     *\n");
-  printf("********************************************************\n");
+
+// draws board with all placed pieces, user after each move
+void drawBoard(struct board b)
+{
+  printf("\n     |     |     \n");
+  printf("  %c  |  %c  |  %c  \n", b.position[0], b.position[1], b.position[2]);
+  printf("_____|_____|_____\n");
+  printf("     |     |     \n");
+  printf("  %c  |  %c  |  %c  \n", b.position[3], b.position[4], b.position[5]);
+  printf("_____|_____|_____\n");
+  printf("     |     |     \n");
+  printf("  %c  |  %c  |  %c  \n", b.position[6], b.position[7], b.position[8]);
+  printf("     |     |     \n");
+
 }
+
+// checks if a selected move is valid
+int checkValidMove(struct board b, int move){
+  // move can be between 1 and 11 (10 for undo, 11 for redo)
+  if(move < 1 || move > 11){
+    printf("Selected position must be betweeen 1 and 9 or 10 for undo, 11 for redo\n");
+    return -1;
+  }
+  // checks if the selected position is free
+  if(b.position[move -1] != ' ' && move < 10){
+    printf("Position %d is already taken! \n", move);
+    return -1;
+  }else{
+    return 1;
+  }
+}
+
 
 // checks if either of the players won the game. If X won X will be returned,
 // if O won O will be returned, otherwize d for draw will be returned
 char checkWin(struct board b){
+  // checks all 8 possible combinations
   if(b.position[0] == b.position[1] &&  b.position[1] == b.position[2]
     && b.position[0] != ' '){
     return b.position[0];
@@ -684,7 +484,7 @@ char checkWin(struct board b){
   return 'd'; // returns d for draw
 }
 
-
+// checks if a game has been finished by checking for space char
 int checkFinish(struct board b){
   int i;
   for (i = 0; i < SIZE; i++) {
@@ -692,301 +492,370 @@ int checkFinish(struct board b){
       return -1;
     }
   }
-  printf("Draw!!\n");
   return 1;
 }
 
-
-
-
-// stack
-
-
-
-void init_stack(struct stack * st){
-  st -> top = -1;
-}
-
-void init_undoRedo(struct undoRedo * unRe){
-  init_stack(&(unRe -> mainStack));
-  init_stack(&(unRe -> undoneMoves));
-}
-
-void push(struct stack * st, struct move mv){
-  //printf("The top is %d\n", st->top +1);
-  //printf("Adding pos %d by player %c at position %d\n", mv.position, mv.player, st->top+1);
-  if(st->top < 8){
-    st -> top++;
-    printf("Adding pos %d by player %c at position %d\n", mv.position, mv.player, st->top);
-    st -> moves[st -> top] = mv;
-
-  }
-}
-
-struct move * pop(struct stack * st){
-  if(st -> top >= 0){
-    struct move * mv = &(st -> moves[st -> top]);
-    st -> top--;
-    return mv;
-  }
-  return NULL;
-}
-
-void unReAddNewMove(struct undoRedo * unRe, struct move mv){
-  push(&(unRe -> mainStack), mv);
-  unRe -> undoneMoves.top = -1;// whenever a new move is added the redo function is no longer available
-}
-
-struct move * undo(struct undoRedo * unRe){
-  if(unRe -> mainStack.top >= 0){
-    struct move * mv = pop(&(unRe -> mainStack));
-    printf("The move to be put in undone: pos - %d, pl - %c\n", mv->position, mv->player );
-    push(&(unRe -> undoneMoves), *mv);
-    return mv;
-  }
-  return NULL;
-}
-
-struct move * redo(struct undoRedo * unRe){
-  if(unRe -> undoneMoves.top >= 0){
-    struct move * mv = pop(&(unRe -> undoneMoves));
-    printf("The move to be put in main Stack: pos - %d, pl - %c\n", mv->position, mv->player );
-    push(&(unRe -> mainStack), *mv);
-    return mv;
-  }
-  return NULL;
+// prints the menu options
+void displayOptions(){
+  printf("********************************************************\n");
+  printf("*  WHAT WOULD YOU LIKE TO DO?                          *\n");
+  printf("*                                                      *\n");
+  printf("*  PRESS 1 TO PLAY PLAYER 1 VS PLAYER 2 CLASSIC GAME   *\n");
+  printf("*  PRESS 2 TO PLAY PLAYER 1 VS CPU GAME                *\n");
+  printf("*  PRESS 3 TO PLAY PLAYER 1 VS PLAYER 2 TIC TOC BOOM   *\n");
+  printf("*  PRESS 4 TO PLAY PLAYER 1 VS CPU TIC TOC BOOM        *\n");
+  printf("*  PRESS 5 FOR SAVED GAMES                             *\n");
+  printf("*  PRESS 6 TO EXIT                                     *\n");
+  printf("********************************************************\n");
 }
 
 
+// prints BOOM
+void printBoom(){
 
-
-
-void display(struct undoRedo * unRe){
-  struct stack mainSt = unRe->mainStack;
-  struct stack undoneSt = unRe->undoneMoves;
-  printf("Main Stack:\n");
-  if(mainSt.top != -1){
-    int i;
-
-    for(i = 0; i <= mainSt.top; i++){
-      printf("position - %d, player - %c\n",mainSt.moves[i].position, mainSt.moves[i].player );
-    }
-  }
-  printf("Undone Stack:\n");
-  if(undoneSt.top != -1){
-    int j;
-
-    for(j = 0; j <= undoneSt.top; j++){
-      printf("position - %d, player - %c\n",undoneSt.moves[j].position, undoneSt.moves[j].player );
-    }
-  }
+ printf(" ,-----.    ,-----.   ,-----.  ,--.   ,--.  \n");
+ printf(" |  |) /_  '  .-.  ' '  .-.  ' |   `.'   |  \n");
+ printf(" |  .-.  \\ |  | |  | |  | |  | |  |'.'|  |  \n");
+ printf(" |  '--' / '  '-'  ' '  '-'  ' |  |   |  |  \n");
+ printf(" `------'   `-----'   `-----'  `--'   `--'  \n");
 
 }
 
+// prints the game logo and dandles user input to displayed options
+void startApp(){
 
-// Gamie history
+  printf("\n");
+  printf("\n");
+  printf(" ,--------. ,--.  ,-----.     ,--------.   ,---.    ,-----.     ,--------.  ,-----.  ,------.  \n");
+  printf(" '--.  .--' |  | '  .--./     '--.  .--'  /  O  \\  '  .--./     '--.  .--' '  .-.  ' |  .---'  \n");
+  printf("    |  |    |  | |  |            |  |    |  .-.  | |  |            |  |    |  | |  | |  `--,   \n");
+  printf("    |  |    |  | '  '--'\\        |  |    |  | |  | '  '--'\\        |  |    '  '-'  ' |  `---.  \n");
+  printf("    `--'    `--'  `-----'        `--'    `--' `--'  `-----'        `--'     `-----'  `------'  \n");
+  printf("\n");
+  printf("\n");
 
+  int option;
 
-void startGameHist(struct game * game, char * plX, char * plO){
-  strcpy(game -> playerX, plX);
-  strcpy(game -> playerO, plO);
-  struct moveList * moves;
-  moves = NULL;
-  //moves = (struct moveList *) malloc (sizeof(struct moveList));
-  game -> moves = moves;
+  // the menu will be displayed untill 6 for exit is selected
+  while(option != 6){
+    displayOptions();
+    scanf("%d",  &option);
 
-}
+    switch (option) {
+      case 1:
+      // play basic 2 players game
+      playGame("Basic", "human");
+      break;
 
-void addMove(struct moveList ** moves, int pos , char pl, int safe){
-  struct move * tempMove;
-  struct moveList * current;
-  if(*moves == NULL){
+      case 2:
+      //play basic game against computer
+      playGame("Basic", "cpu");
+      break;
 
-    tempMove = (struct move *) malloc(sizeof(struct move));
-    tempMove -> position = pos;
-    tempMove -> player = pl;
-    tempMove -> wasSafe = safe;
+      case 3:
+      // play Tic Toc Boom 2 players
+      playGame("TTB", "human");
+      break;
 
-    struct moveList * tempMoveList;
-    tempMoveList = (struct moveList *) malloc (sizeof(struct moveList));
-    tempMoveList -> oneMove = *tempMove;
-    tempMoveList -> link = NULL;
+      case 4:
+      //play Tic Toc Boom against computer
+      playGame("TTB", "cpu");
+      break;
 
-    *moves = tempMoveList;
-  }
-  else{
-    current = *moves;
-    while(current -> link != NULL){
-      current = current -> link;
-    }
-    tempMove = (struct move *) malloc(sizeof(struct move));
-    tempMove -> position = pos;
-    tempMove -> player = pl;
-    tempMove -> wasSafe = safe;
-
-    struct moveList * tempMoveList;
-    tempMoveList = (struct moveList *) malloc (sizeof(struct moveList));
-    tempMoveList -> oneMove = *tempMove;
-    tempMoveList -> link = NULL;
-
-    current -> link = tempMoveList;
-
-  }
-  printf("Move added\n" );
-}
-
-
-void displayGame(struct game * oneGame){
-
-  if(oneGame -> winner == 'X'){
-    printf("*%s* VS %s\n", oneGame -> playerX, oneGame -> playerO);
-  }
-  if(oneGame -> winner == 'O'){
-    printf("%s VS *%s*\n", oneGame -> playerX, oneGame -> playerO);
-  }
-  if(oneGame -> winner == 'd'){
-    printf("%s VS %s\n", oneGame -> playerX, oneGame -> playerO);
-  }
-}
-// void displayGame(struct game * oneGame){
-//   printf("in display Game\n" );
-//   printf("%s VS %s\n", oneGame -> playerX, oneGame -> playerO);
-//   struct moveList * temp;
-//   temp = oneGame -> moves;
-//   while(temp != NULL){
-//     if(temp -> oneMove.player == 'X'){
-//       printf("%s placed %c in position %d\n", oneGame -> playerX,  temp -> oneMove.player, temp -> oneMove.position );
-//     }else{
-//       printf("%s placed %c in position %d\n", oneGame -> playerO,  temp -> oneMove.player, temp -> oneMove.position );
-//     }
-//
-//     temp = temp ->link;
-//   }
-// }
-
-void addSavedGame(struct savedGames ** savedGameList, struct game * newGame){
-  struct savedGames * new = (struct savedGames *)malloc(sizeof(struct savedGames));
-  new -> thisGame = *newGame;
-  new -> nextGame = NULL;
-  if(*savedGameList == NULL){
-    *savedGameList = new;
-  }else{
-    struct savedGames * current = *savedGameList;
-    while(current -> nextGame != NULL){
-      current = current -> nextGame;
-    }
-
-    current -> nextGame = new;
-  }
-}
-
-void askToSave(struct savedGames ** gameList, struct game * game){
-  char answer;
-  printf("Would you like to save the game? y/n:\n " );
-  scanf(" %c", &answer);
-  if(answer == 'y' || answer == 'Y'){
-    addSavedGame(gameList, game);
-  }
-}
-
-
-
-void savedGamesMenu(){
-  if(*gameList != NULL){
-    printf("   SAVED GAMES\n");
-    int i = 1;
-    struct savedGames * games = *gameList;
-    while (games -> nextGame != NULL) {
-    printf("%d. ",i );
-    displayGame(&(games -> thisGame));
-    games = games -> nextGame;
-    i++;
-    }
-    printf("%d. ",i );
-    displayGame(&(games -> thisGame));
-    printf("Enter the number of the game to replay, or 0 to exit: \n");
-    int choice;
-    scanf("%d", &choice);
-    printf("\n");
-    if(choice == 0){
-      printf("Exit saved Games\n" );
-
-    }else if(choice > 0 && choice <= i){
-      printf("in choice above 0\n" );
-      replayGame(choice);
-    }else{
-      printf("Game number %d does not exist\n", choice );
+      case 5:
+      // show saved games
       savedGamesMenu();
-    }
+      break;
 
-  }else{
-    printf("There are no saved games\n");
+      case 6:
+      printf("GOOD BYE!!\n");
+      break;
+
+      default :
+      printf("SELECTED OPTION IS INVALID!\n\n");
+    }
   }
+}
+
+// enters a selected game type that can be played many times
+void playGame(char* type, char* against){
+  char playerX[10];
+  char playerO[10];
+  printf("PLEASE ENTER PLAYER'S ONE NAME: ");
+  scanf(" %[^\n]", playerX);
+  // for player 2 it will only be asked if 2 players game was SELECTED
+  // otherwise the 2nd player's name will be Computer
+  if(strcmp(against, "human") == 0){
+    printf("PLEASE ENTER PLAYER'S TWO NAME: ");
+    scanf(" %[^\n]", playerO);
+  }else if(strcmp(against, "cpu") == 0){
+    strcpy(playerO,"Computer");
+  }
+  // keeps track of playerXwins
+  int playerXwins = 0;
+  int playerOwins = 0;
+
+
+  char playAgain = 'n';
+  char winner;
+  do {
+    // the single game is called here. X, O or d will be returned depending
+    // on who won or if there was a draw
+    winner = playMatch(playerX, playerO, type, against);
+
+    if(winner == 'X'){
+      playerXwins++;
+    }else if(winner == 'O'){
+      playerOwins++;
+    }
+    // displays the number of games won by each player in this game type
+    printf("%s - %d VS %s - %d\n", playerX, playerXwins, playerO, playerOwins);
+    printf("DO YOU WANT TO PLAY AGAIN? y/n\n");
+    scanf(" %c", &playAgain);
+
+  } while(playAgain == 'y' || playAgain == 'Y');
 
 }
 
-void replayGame(int gameNo){
-  int i;
-  struct savedGames * games = *gameList;
-  for (i = 1; i < gameNo; i++) {
-    games = games -> nextGame;
-  }
-  printf("The selected game is \n" );
-  displayGame(&(games -> thisGame));
-  struct moveList * moves = games -> thisGame.moves;
-  struct board replayBoard;
-  initBoard(&replayBoard);
-  while (moves -> link != NULL) {
-    // if(moves -> oneMove.player == 'X'){
-    //   printf("%s selected position %d\n", games -> thisGame.playerX, moves -> oneMove.position );
-    // }else{
-    //   printf("%s selected position %d\n", games -> thisGame.playerX, moves -> oneMove.position );
-    // }
-    if(moves -> oneMove.wasSafe == -1){
-      printf("BOOM!!! THERE WAS A BOMB IN THIS POSITION! NOW IT IS SAFE!\n");
-    }else{
-      int pos = moves -> oneMove.position;
-      char pl = moves -> oneMove.player;
-      printf("\n");
-      if(replayBoard.position[pos-1] != ' '){
-        replayBoard.position[pos-1] = ' ';
-        if(pl == 'X'){
-          printf("%s undone the move at position %d\n", games -> thisGame.playerO, pos);
-        }else{
-          printf("%s undone the move at position %d\n", games -> thisGame.playerX, pos);
-        }
 
-      }else{
-        replayBoard.position[pos-1] = pl;
-        if(pl == 'X'){
-          printf("%s selected position %d\n", games -> thisGame.playerX, pos);
-        }else{
-          printf("%s selected position %d\n", games -> thisGame.playerO, pos);
+// plays a single match of a selected game type
+char playMatch(char *playerXname, char *playerOname, char* type, char* against){
+  // initializes the required data structures for a sigle game
+  struct board myBoard;
+  initBoard(&myBoard);
+  struct undoRedo * unRe;
+  unRe = (struct undoRedo *)malloc(sizeof(struct undoRedo));
+  init_undoRedo(unRe);
+  struct game * oneGame;
+  oneGame = (struct game *)malloc(sizeof(struct game));
+  startGameHist(oneGame, playerXname, playerOname);
+  struct moveList ** recordedMoves = &(oneGame -> moves);
+
+
+  //####bmobs
+  int numberOfBombs;
+  int bombs[3];
+
+  // this code is for random generation of bombs. It will only be run if
+  // Tic Toc Boom game type was selected
+  if(strcmp(type,"TTB") == 0){
+
+    do {
+      printf("ENTER THE NUMBER OF BOMBS BETWEEN 1-3\n");
+      scanf(" %d", &numberOfBombs);
+      printf("\n");
+    } while(numberOfBombs != 1 && numberOfBombs != 2 && numberOfBombs != 3);
+
+    // randomly selects 3 positions
+    srand(time(0));
+    int i = 0;
+    // select at random locations of the bombs (number specified by user)
+    while(i != numberOfBombs){
+      int bomb;
+      bomb = ((rand()%9)+1);
+      // the first bomb position is always accepted
+      if(i == 0){
+        bombs[i] = bomb;
+        i++;
+      }
+      // in case where more than one bombs is selected every other position is
+      // checked if it is not alredy in the selected list
+      else{
+        int j;
+        char exists = 'n';
+        for (j = 0; j <= i; j++) {
+          if(bombs[j] == bomb){
+            exists = 'y';
+          }
+        }
+        if(exists == 'n'){
+          bombs[i] = bomb;
+          i++;
         }
       }
     }
-    drawBoard(replayBoard);
-    moves = moves -> link;
-    sleep(2);
-  }
-  replayBoard.position[moves -> oneMove.position -1] = moves -> oneMove.player;
-  if(moves -> oneMove.player == 'X'){
-    printf("%s SELECTED POSITION %d AND WON THE GAME!\n",
-    games -> thisGame.playerX, moves -> oneMove.position);
-  }else{
-    printf("%s SELECTED POSITION %d AND WON THE GAME!\n",
-    games -> thisGame.playerO, moves -> oneMove.position);
-  }
 
-  drawBoard(replayBoard);
-  sleep(2);
+  }
+  int b; // used to iterate through bombs
+  char hasBomb;
+  //####bmobs
 
+
+
+  int i = 0; // turns, if even X makes a move, if uneven O makes a move
+  int j = 0; //
+  int startPos = 0; // used to display positions when all moves are undone
+  // continues until gams has been finished
+  while(checkFinish(myBoard) == -1) {
+    hasBomb = 'n';
+    //display the board with positions only at the beginning
+    if(i == startPos){
+      drawBoardPositions();
+    }
+    // adds 1 or 0 to i making sure that the first player is chosen at random
+    // this is only done once at the begining of the game
+    if(j == 0){
+      srand(time(0)); // seed will be set to time to allow randomness
+      i += rand()%2;
+      startPos = i;
+      j++;
+    }
+
+    int pos; // variable that will hold the selected position
+
+    // X makes a move when i is even
+    if(i%2 == 0){
+      do {
+        pos = 0;
+        printf("WHERE WOULD YOU LIKE TO PLACE X %s?", playerXname);
+        scanf("%d", &pos);
+      } while(checkValidMove(myBoard, pos) == -1);
+      if(pos <10){
+        // this code only runs when Tic Toc Boom was selected
+        if(strcmp(type,"TTB") == 0){
+          for (b = 0; b < numberOfBombs; b++) {
+            if(bombs[b] == pos){
+              printBoom();
+              printf("THERE WAS A BOMB IN POSITION %d\n", pos );
+              hasBomb = 'y'; // so the next part of code does not run
+              bombs[b]=10; // deactivate the bmob
+              addMove(recordedMoves, pos, 'X', -1);
+            }
+          }
+          // only runs if there wasny a bom
+          if(hasBomb == 'n'){
+            myBoard.position[pos-1] = 'X';
+            addMove(recordedMoves, pos, 'X', 1);
+          }
+          // code for classic game
+        }else{
+          myBoard.position[pos-1] = 'X';
+          struct move * mv = (struct move *)malloc(sizeof(struct move));
+          mv -> position = pos;
+          mv -> player = 'X';
+          unReAddNewMove(unRe, *mv);
+          addMove(recordedMoves, pos, 'X', 1);
+        }
+        i++;
+      }else{
+        // logic for when undo was selected
+        if(pos == 10 && i > startPos){
+          if(unRe -> mainStack.top != -1){
+            struct move * undoneMove = undo(unRe);
+            myBoard.position[(undoneMove -> position)-1] = ' ';
+            i--;
+            pos = undoneMove -> position;
+          }
+        }
+        // logic for redo
+        if(pos == 11){
+          if(unRe -> undoneMoves.top != -1){
+            struct move * redoneMove = redo(unRe);
+            myBoard.position[(redoneMove -> position)-1] = 'X';
+            i++;
+            pos = redoneMove -> position;
+          }else{
+            printf("NO MOVES TO REDO\n");
+          }
+        }
+        addMove(recordedMoves, pos, 'X', 1);
+      }
+      // logic for when i is uneven and it's O's turn
+    }else{
+
+      do {
+        printf("WHERE WOULD YOU LIKE TO PLACE O %s?", playerOname);
+        if (strcmp(against, "cpu") == 0) {
+          sleep(2);
+          pos = generateMove(myBoard)+1;
+        }else{
+          scanf("%d", &pos);
+        }
+      } while(checkValidMove(myBoard, pos) == -1);
+
+      if(pos < 10){
+        if(strcmp(type,"TTB") == 0){
+          for (b = 0; b < numberOfBombs; b++) {
+            if(bombs[b] == pos){
+              printBoom();
+              printf("THERE WAS A BOMB IN POSITION %d\n", pos );
+              hasBomb = 'y';
+              bombs[b]=10; // deactivate the bmob
+              addMove(recordedMoves, pos, 'O', -1);
+            }
+          }
+          if(hasBomb == 'n'){
+            myBoard.position[pos-1] = 'O';
+            addMove(recordedMoves, pos, 'O', 1);
+          }
+        }else{
+          myBoard.position[pos-1] = 'O';
+          struct move * mv = (struct move *)malloc(sizeof(struct move));
+          mv -> position = pos;
+          mv -> player = 'O';
+          unReAddNewMove(unRe, *mv);
+          addMove(recordedMoves, pos, 'O', 1);
+        }
+        i++;
+      }else{
+        if(pos == 10 && i > startPos && strcmp(type,"Basic") == 0){
+          if(unRe -> mainStack.top != -1){
+            struct move * undoneMove = undo(unRe);
+            myBoard.position[(undoneMove -> position)-1] = ' ';
+            i--;
+            pos = undoneMove -> position;
+          }
+        }
+        if(pos == 11 && strcmp(type,"Basic") == 0){
+          if(unRe -> undoneMoves.top != -1){
+            struct move * redoneMove = redo(unRe);
+            myBoard.position[(redoneMove -> position)-1] = 'O';
+            i++;
+            pos = redoneMove -> position;
+          }else{
+            printf("NO MORE MOVES TO REDO\n");
+          }
+        }
+        addMove(recordedMoves, pos, 'O', 1);
+      }
+
+    }
+    // displays the result of the game
+    //displayGame(oneGame);
+    // draws empty board once the game has been undone to the starting point
+    if(i != startPos){
+      drawBoard(myBoard);
+    }
+
+    // checks if the game was won and displays a message
+    char winner = checkWin(myBoard);
+    if(winner != 'd'){
+      if(winner == 'X'){
+        printf("%s WON THE GAME!\n", playerXname);
+        oneGame -> winner = 'X';
+        askToSave(gameList, oneGame);
+        return winner;
+      }else if(winner == 'O'){
+        printf("%s WON THE GAME!\n", playerOname);
+        oneGame -> winner = 'O';
+        askToSave(gameList, oneGame);
+        return winner;
+      }
+
+      //return checkWin(myBoard);
+      //break;
+    }
+
+  }
+  oneGame -> winner = 'd';
+  askToSave(gameList, oneGame);
+  return 'd'; // for draw
 }
 
 
+// generates a move for the computer player
 int generateMove(struct board b){
-  printf("Generating move\n" );
-  // if board is empty then select at randomnes
+  // if board is empty then select at randomn
   int isEmpty = 1;
   int i;
   for (i = 0; i < 9; i++) {
@@ -997,10 +866,11 @@ int generateMove(struct board b){
   if(isEmpty == 1){
     srand(time(0)); // seed will be set to time to allow randomness
     int randomPosition = rand()%8;
-    printf("random pos is: %d\n", randomPosition);
     return randomPosition;
   }
   //finish game if possible
+  // checks if there are combinations that will allow to win the game by puttingthe
+  // final piece
   if(b.position[0] == b.position[1] && b.position[2] == ' ' && b.position[1] != ' '){
     return 2;
   }else if (b.position[1] == b.position[2] && b.position[0] == ' ' && b.position[1] == 'O') {
@@ -1052,7 +922,8 @@ int generateMove(struct board b){
   }else if (b.position[2] == b.position[6] && b.position[4] == ' ' && b.position[2] == 'O') {
     return 4;
   }
-  //block opponent from winning
+  //block opponent from winning. As above checks for combinations of pieces and blocks the
+  // oponent
   if(b.position[0] == b.position[1] && b.position[2] == ' ' && b.position[1] != ' '){
     return 2;
   }else if (b.position[1] == b.position[2] && b.position[0] == ' ' && b.position[1] != ' ') {
@@ -1105,11 +976,10 @@ int generateMove(struct board b){
     return 4;
   }
 
-  //
-  printf("got to here\n" );
-  //int i;
+  // if none of the above found a suitable move looks for the first piece and tries to
+  // add another one next to it
+
   for (i = 0; i < 9; i++) {
-    printf("%d\n", i );
     if(b.position[i] == 'O'){
       if(i == 0){
         if(b.position[i+1] == ' '){
@@ -1195,28 +1065,15 @@ int generateMove(struct board b){
     }
   }
 
-  // if a sutable move has not been found in the above select a move at randomnes
+  // if a sutable move has not been found in the above, selects a valid move at random
   int isValid = -1;
   while (isValid == -1) {
     srand(time(0)); // seed will be set to time to allow randomness
     int randomPos = rand()%8;
-    printf("random pos is: %d\n", randomPos);
     if(b.position[randomPos] == ' '){
       isValid = 1;
       return randomPos;
     }
   }
   return 1;
-}
-
-
-
-void printBoom(){
-
- printf(" ,-----.    ,-----.   ,-----.  ,--.   ,--.  \n");
- printf(" |  |) /_  '  .-.  ' '  .-.  ' |   `.'   |  \n");
- printf(" |  .-.  \\ |  | |  | |  | |  | |  |'.'|  |  \n");
- printf(" |  '--' / '  '-'  ' '  '-'  ' |  |   |  |  \n");
- printf(" `------'   `-----'   `-----'  `--'   `--'  \n");
-
 }
