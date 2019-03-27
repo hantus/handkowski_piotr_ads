@@ -128,15 +128,12 @@ int main(int argc, char const *argv[]) {
   // initializes a structure for storing saved games
   gameList = (struct savedGames **)malloc(sizeof(struct savedGames));
   *gameList = NULL;
-  //startApp();
+  startApp();
 
 
   // code used to time the performance of the linked list
 
-  // struct game myGame;
-  // startGame(&myGame, "Peter", "Yola");
-  // struct moveList ** gameMoves;
-  // gameMoves = &(myGame.moves);
+
   //clock_t t;
   // testing addition to linked list
   // printf("start: %d \n", (int) (t=clock()));
@@ -147,12 +144,12 @@ int main(int argc, char const *argv[]) {
   // printf("Elapsed: %f seconds \n", (double) t/ CLOCKS_PER_SEC);
 
 
-  printf("start: %d \n", (int) (t=clock()));
-  for (int i= 0; i< 1000; i++) {
-    testComputer();
-  }
-  printf("stop: %d \n", (int) (t=clock()-t));
-  printf("Elapsed: %f seconds \n", (double) t/ CLOCKS_PER_SEC);
+  // printf("start: %d \n", (int) (t=clock()));
+  // for (int i= 0; i< 1000; i++) {
+  //   testComputer();
+  // }
+  // printf("stop: %d \n", (int) (t=clock()-t));
+  // printf("Elapsed: %f seconds \n", (double) t/ CLOCKS_PER_SEC);
 
   return 0;
 }
