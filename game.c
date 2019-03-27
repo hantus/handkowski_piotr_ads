@@ -128,7 +128,32 @@ int main(int argc, char const *argv[]) {
   // initializes a structure for storing saved games
   gameList = (struct savedGames **)malloc(sizeof(struct savedGames));
   *gameList = NULL;
-  startApp();
+  //startApp();
+
+
+  // code used to time the performance of the linked list
+
+  // struct game myGame;
+  // startGame(&myGame, "Peter", "Yola");
+  // struct moveList ** gameMoves;
+  // gameMoves = &(myGame.moves);
+  //clock_t t;
+  // testing addition to linked list
+  // printf("start: %d \n", (int) (t=clock()));
+  // for (int i= 0; i< 1000; i++) {
+  //   addMove(gameMoves, 5, 'X', 1);
+  // }
+  // printf("stop: %d \n", (int) (t=clock()-t));
+  // printf("Elapsed: %f seconds \n", (double) t/ CLOCKS_PER_SEC);
+
+
+  printf("start: %d \n", (int) (t=clock()));
+  for (int i= 0; i< 1000; i++) {
+    testComputer();
+  }
+  printf("stop: %d \n", (int) (t=clock()-t));
+  printf("Elapsed: %f seconds \n", (double) t/ CLOCKS_PER_SEC);
+
   return 0;
 }
 
@@ -306,7 +331,7 @@ void savedGamesMenu(){
     displayGame(&(games -> thisGame));
     //ask the user for the game number to be replayed and if correct number
     // has been provided replays the game
-    printf("ENTER THE NUMBER OF GHE GAME TO REPLAY, OR 0 TO EXIT: \n");
+    printf("ENTER THE NUMBER OF THE GAME TO REPLAY, OR 0 TO EXIT: \n");
     int choice;
     scanf("%d", &choice);
     printf("\n");
@@ -855,6 +880,7 @@ char playMatch(char *playerXname, char *playerOname, char* type, char* against){
 
 // generates a move for the computer player
 int generateMove(struct board b){
+  printf("in gen move \n" );
   // if board is empty then select at randomn
   int isEmpty = 1;
   int i;

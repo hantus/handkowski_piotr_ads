@@ -28,11 +28,12 @@ struct game{
 
 
 
-void startGameHist(struct game *, char *, char *);
+void startGame(struct game *, char *, char *);
 
 void addMove(struct moveList **, int, char, int);
 
 void displayGame(struct game *);
+
 
 int main(int argc, char const *argv[]) {
   struct game myGame;
@@ -40,15 +41,29 @@ int main(int argc, char const *argv[]) {
   printf("%s plays with %s\n", myGame.playerX, myGame.playerO);
   struct moveList ** gameMoves;
   gameMoves = &(myGame.moves);
-  addMove(gameMoves, 5, 'X', 1);
-  addMove(gameMoves, 1, 'O', 1);
-  addMove(gameMoves, 6, 'X', 1);
-  addMove(gameMoves, 4, 'O', 1);
-  displayGame(&myGame);
+  // addMove(gameMoves, 5, 'X', 1);
+  // addMove(gameMoves, 1, 'O', 1);
+  // addMove(gameMoves, 6, 'X', 1);
+  // addMove(gameMoves, 4, 'O', 1);
+  // displayGame(&myGame);
+
+
+  clock_t t;
+
+
+
+  printf("start: %d \n", (int) (t=clock())); // t = clock() assigns current time to t
+  for (int i= 0; i< 1000; i++) {
+    addMove(gameMoves, 5, 'X', 1);
+  }
+  printf("stop: %d \n", (int) (t=clock()-t));
+  printf("Elapsed: %f seconds \n", (double) t/ CLOCKS_PER_SEC);
 
 
   return 0;
 }
+
+
 
 
 void startGame(struct game * game, char * plX, char * plO){
@@ -96,7 +111,6 @@ void addMove(struct moveList ** moves, int pos , char pl, int safe){
     current -> link = tempMoveList;
 
   }
-  printf("Move added\n" );
 }
 
 
